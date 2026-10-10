@@ -322,6 +322,31 @@ def open_from_pin(value, found):
     return open_details(value.split("|")[0], found)
 
 
+def ask_about_event(question, history, event_id):
+    """Chat on the details page: one Gemma call, answering only from this event's details."""
+    history = history or []
+    if not question.strip():
+        return "", history
+    ev = next((e for e in events.load_events() if e["id"] == event_id), None)
+    if ev is None:
+        return "", history + [{"role": "user", "content": question},
+                              {"role": "assistant", "content": "Open an event first."}]
+    facts = {k: ev.get(k) for k in ("title", "organiser", "type", "mode", "city", "start", "end", "event_end",
+                                    "is_free", "description", "eligibility", "requirements", "register_url")}
+    facts["full_details"] = ev.get("details_text", "")[:3000]
+    chat = "\n".join(f"{m['role']}: {m['content']}" for m in history[-6:])
+    prompt = (f"Event details (JSON):\n{json.dumps(facts, ensure_ascii=False)}\n\n"
+              f"Conversation so far:\n{chat}\n\nStudent's question: {question}")
+    rule = ("You answer a student's questions about ONE event, using only the event details given. "
+            "If the answer is not in the details, say so and suggest checking the register link. "
+            "Answer in 1-3 short sentences.")
+    try:
+        answer = gemma_client.ask(prompt, system=rule)
+    except Exception as error:
+        answer = gemma_client.describe_error(error)
+    return "", history + [{"role": "user", "content": question}, {"role": "assistant", "content": answer}]
+
+
 def back_to_events():
     return gr.update(visible=True), gr.update(visible=False)
 
@@ -522,6 +547,10 @@ footer { display: none !important; }
 .ce-tile-value { font-weight: 600; color: var(--ce-text); }
 .ce-ai { color: var(--ce-accent-ink); }
 
+/* event chat */
+#ce-chat { border: 1px solid var(--ce-border); border-radius: 18px; padding: 14px; background: var(--ce-card);
+           margin-top: 16px; }
+
 /* poster panel */
 #ce-poster-panel { border: 1px solid var(--ce-border); border-radius: 18px; padding: 16px; background: var(--ce-card); }
 
@@ -634,6 +663,11 @@ with gr.Blocks(title=TITLE) as demo:
         with gr.Column(visible=False) as details_view:
             back_btn = gr.Button("← Back to events", elem_id="ce-back", size="sm")
             details_box = gr.HTML()
+            with gr.Column(elem_id="ce-chat"):
+                gr.Markdown("#### ✦ Ask about this event")
+                chat_box = gr.Chatbot(height=260, show_label=False)
+                chat_q = gr.Textbox(placeholder="e.g. Can first-year students join? Is there a fee?",
+                                    show_label=False, submit_btn=True)
 
         pin_box = gr.Textbox(elem_id="ce-pin-id", show_label=False, container=False)  # hidden, filled by map clicks
 
@@ -644,6 +678,8 @@ with gr.Blocks(title=TITLE) as demo:
             trigger(show_events, list_inputs, list_outputs)
         refresh_btn.click(refresh, list_inputs, list_outputs)
         back_btn.click(back_to_events, None, [main_view, details_view])
+        chat_q.submit(ask_about_event, [chat_q, chat_box, selected_state], [chat_q, chat_box])
+        selected_state.change(lambda: [], None, chat_box)  # new event, fresh chat
         # The day/night switch runs only in the browser. Gradio marks night mode with a "dark" class.
         theme_btn.click(None, js="""() => {
             const night = !!document.querySelector('.dark');
