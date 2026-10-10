@@ -411,7 +411,8 @@ CSS = """
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 body, gradio-app, .gradio-container { background: var(--ce-bg) !important; color: var(--ce-text); }
-.gradio-container { max-width: 1280px !important; margin: 0 auto !important; padding: 8px 16px !important; }
+.gradio-container { max-width: min(1280px, 100%) !important; min-width: 0 !important; margin: 0 auto !important;
+                    padding: 8px clamp(10px, 2vw, 16px) !important; overflow-x: hidden; }
 .gradio-container > .main, .gradio-container .wrap.contain { margin: 0 auto !important; width: 100% !important; }
 footer { display: none !important; }
 #ce-pin-id { display: none !important; }
@@ -528,7 +529,11 @@ footer { display: none !important; }
 @media (max-width: 768px) {
   #ce-top { flex-wrap: wrap; }
   #ce-top > :first-child { min-width: 40px !important; flex: 0 0 40px !important; }
-  #ce-top > :nth-child(2) { flex: 1 1 calc(100% - 52px) !important; min-width: 0 !important; }
+  #ce-city { flex: 1 1 calc(100% - 52px) !important; min-width: 0 !important; }
+  #ce-radius { flex: 1 1 120px !important; min-width: 0 !important; }
+  .main, .wrap.contain, .contain { padding-left: 0 !important; padding-right: 0 !important; }
+  #ce-body, #ce-body > *, #ce-list-col .ce-card { min-width: 0 !important; max-width: 100% !important; }
+  #ce-body > * { width: 100% !important; flex: none !important; }
   .ce-logo span:last-child { display: none; }
   #ce-chips .wrap { flex-wrap: nowrap; overflow-x: auto; }
   #ce-body { flex-direction: column; }
@@ -544,10 +549,9 @@ footer { display: none !important; }
   .ce-details-right { order: 1; }
   .ce-register-card { order: 2; position: sticky; bottom: 0; z-index: 5; margin: 0; }
   /* compact phone layout: never wider than the screen */
-  .gradio-container { padding: 4px 10px !important; width: 100% !important; max-width: 100vw !important;
+  .gradio-container { padding: 4px 10px !important; width: 100% !important; max-width: 100vw !important; min-width: 0 !important;
                       overflow-x: hidden; }
   .gradio-container [style*="min-width"], .gradio-container .block, .gradio-container .form { min-width: 0 !important; }
-  #ce-top > :nth-child(3) { flex: 1 1 100px !important; }   /* radius dropdown shares the second row */
   #ce-sort { max-width: 140px; }
   #ce-top { gap: 8px; }
   #ce-refresh-btn, #ce-theme-btn, #ce-poster-btn { flex: 0 0 44px !important; min-width: 44px !important;
@@ -582,8 +586,9 @@ with gr.Blocks(title=TITLE) as demo:
         with gr.Column() as main_view:
             with gr.Row(elem_id="ce-top"):
                 gr.HTML(LOGO_HTML, scale=0, min_width=210)
-                city = gr.Textbox(DEFAULT_CITY, show_label=False, placeholder="🔍 City", scale=3)
-                radius = gr.Dropdown(RADIUS_CHOICES, value=DEFAULT_RADIUS, show_label=False, scale=1, min_width=150)
+                city = gr.Textbox(DEFAULT_CITY, show_label=False, placeholder="🔍 City", scale=3, elem_id="ce-city")
+                radius = gr.Dropdown(RADIUS_CHOICES, value=DEFAULT_RADIUS, show_label=False, scale=1, min_width=150,
+                                     elem_id="ce-radius")
                 refresh_btn = gr.Button("↻", elem_id="ce-refresh-btn", scale=0, min_width=48)
                 theme_btn = gr.Button("🌗", elem_id="ce-theme-btn", scale=0, min_width=48)
                 poster_btn = gr.Button("📷 Add from poster", elem_id="ce-poster-btn", scale=0, min_width=170)
