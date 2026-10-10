@@ -33,7 +33,7 @@ If the internet or an API is down, the app uses the saved `events.json` (offline
 Distance is the straight-line (haversine) distance from the city you type.
 Geocoding uses OpenStreetMap Nominatim at most once per second.
 
-Built on the Gemma 4 hackathon starter. Starter guides are in `docs/`.
+Built on the Gemma 4 hackathon starter.
 
 ## License
 MIT, see `LICENSE`.
