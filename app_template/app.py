@@ -223,15 +223,26 @@ def map_html(lat, lon, radius, found):
                   fill=True, fill_color=PURPLE, fill_opacity=0.08).add_to(m)
     folium.CircleMarker([lat, lon], radius=6, color=PURPLE, fill=True, fill_opacity=1,
                         tooltip="You are here").add_to(m)
+    pins = []  # (folium's JavaScript name for the pin, event id)
     for ev in found:
         if ev.get("lat") is None:
             continue
         tip = f"<b>{esc(ev['title'])}</b>{meta_line(ev)}"
-        folium.CircleMarker([ev["lat"], ev["lon"]], radius=8, color="white", weight=1, fill=True,
-                            fill_color=pin_color(ev), fill_opacity=1,
-                            tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(m)
+        pin = folium.CircleMarker([ev["lat"], ev["lon"]], radius=8, color="white", weight=1, fill=True,
+                                  fill_color=pin_color(ev), fill_opacity=1,
+                                  tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(m)
+        pins.append((pin.get_name(), ev["id"]))
     d = radius / 111  # about 111 km per degree, so the whole circle fits on screen
     m.fit_bounds([[lat - d, lon - d], [lat + d, lon + d]])
+    # Clicking a pin writes its event id into the hidden #ce-pin-id box on the page, which opens the details.
+    # The time is added so clicking the same pin twice still counts as a change.
+    clicks = "".join(f"{name}.on('click', () => pick({json.dumps(event_id)}));" for name, event_id in pins)
+    m.get_root().html.add_child(folium.Element(
+        "<script>window.addEventListener('load', () => {"
+        "function pick(id) { const box = parent.document.querySelector('#ce-pin-id textarea');"
+        " box.value = id + '|' + Date.now(); box.dispatchEvent(new Event('input', {bubbles: true})); }"
+        + clicks + "});</script>"
+        "<style>.leaflet-interactive{cursor:pointer}</style>"))
     page = html.escape(m.get_root().render(), quote=True)
     legend = (f'<div class="ce-legend"><span style="background:{PURPLE}"></span>Hackathon'
               f'<span style="background:{GREEN}"></span>Workshop</div>')
@@ -262,6 +273,13 @@ def open_details(event_id, found):
     if ev is None:
         return gr.update(), gr.update(), "<p class='ce-error'>Event not found.</p>", event_id
     return gr.update(visible=False), gr.update(visible=True), details_html(ev), event_id
+
+
+def open_from_pin(value, found):
+    """A map pin was clicked: the hidden box holds 'event_id|time'."""
+    if not value:
+        return gr.update(), gr.update(), gr.update(), gr.update()
+    return open_details(value.split("|")[0], found)
 
 
 def back_to_events():
@@ -335,6 +353,7 @@ body, gradio-app, .gradio-container { background: #141414 !important; color: #f2
 .gradio-container { max-width: 1280px !important; margin: 0 auto !important; padding: 8px 16px !important; }
 .gradio-container > .main, .gradio-container .wrap.contain { margin: 0 auto !important; width: 100% !important; }
 footer { display: none !important; }
+#ce-pin-id { display: none !important; }
 
 /* top bar */
 #ce-top { align-items: center; gap: 12px; flex-wrap: nowrap; }
@@ -501,6 +520,8 @@ with gr.Blocks(title=TITLE) as demo:
             back_btn = gr.Button("← Back to events", elem_id="ce-back", size="sm")
             details_box = gr.HTML()
 
+        pin_box = gr.Textbox(elem_id="ce-pin-id", show_label=False, container=False)  # hidden, filled by map clicks
+
         # ----- wiring -----
         list_inputs = [city, radius, chip, sort]
         list_outputs = [map_box, found_state, count]
@@ -508,6 +529,8 @@ with gr.Blocks(title=TITLE) as demo:
             trigger(show_events, list_inputs, list_outputs)
         refresh_btn.click(refresh, list_inputs, list_outputs)
         back_btn.click(back_to_events, None, [main_view, details_view])
+        pin_box.change(open_from_pin, [pin_box, found_state],
+                      [main_view, details_view, details_box, selected_state])
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
         close_btn.click(lambda: gr.update(visible=False), None, poster_panel)
         extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes)
