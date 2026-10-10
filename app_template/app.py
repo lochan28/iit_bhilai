@@ -215,9 +215,11 @@ def map_html(lat, lon, radius, found):
         ".leaflet-tile-container img{width:256.6px!important;height:256.6px!important}"
         # hover card: dark, white title, wraps long names
         ".leaflet-tooltip{background:#1c1c1c!important;color:#a0a0a0!important;border:1px solid #3a3a3a!important;border-radius:12px!important;"
-        "padding:10px 12px!important;white-space:normal!important;width:max-content!important;max-width:240px!important;font-size:12px!important;"
+        "padding:10px 12px!important;white-space:normal!important;width:max-content!important;max-width:290px!important;font-size:12px!important;"
         "box-shadow:0 6px 20px rgba(0,0,0,.5)!important}"
         ".leaflet-tooltip b{color:#fff!important;font-size:14px!important;font-weight:600!important;display:block!important;margin-bottom:3px!important}"
+        ".ce-tip{display:flex;gap:10px;align-items:flex-start}"
+        ".ce-tip img{width:44px;height:44px;flex:none;border-radius:8px;object-fit:cover;background:#262640}"
         ".leaflet-tooltip-top:before{border-top-color:#3a3a3a!important}</style>"))
     folium.Circle([lat, lon], radius=radius * 1000, color="#7b70e8", weight=2, dash_array="6 6",
                   fill=True, fill_color=PURPLE, fill_opacity=0.08).add_to(m)
@@ -227,7 +229,8 @@ def map_html(lat, lon, radius, found):
     for ev in found:
         if ev.get("lat") is None:
             continue
-        tip = f"<b>{esc(ev['title'])}</b>{meta_line(ev)}"
+        logo = f'<img src="{esc(ev["poster_url"])}" alt="">' if ev.get("poster_url") else ""
+        tip = f'<div class="ce-tip">{logo}<div><b>{esc(ev["title"])}</b>{meta_line(ev)}</div></div>'
         pin = folium.CircleMarker([ev["lat"], ev["lon"]], radius=8, color="white", weight=1, fill=True,
                                   fill_color=pin_color(ev), fill_opacity=1,
                                   tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(m)
