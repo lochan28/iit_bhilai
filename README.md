@@ -19,6 +19,9 @@ copy .env.example .env            # then put your GEMINI_API_KEY in .env
 python events.py                  # optional: fetch fresh events into events.json
 python app_template/app.py        # open http://127.0.0.1:7860
 ```
+To open it from a phone or laptop on the same Wi-Fi, start it with `python app_template/app.py --lan`
+and open the second address it prints (like `http://10.50.33.81:7860`). Allow Python through the Windows firewall if asked.
+
 If the internet or an API is down, the app uses the saved `events.json` (offline demo mode).
 
 ## How it works

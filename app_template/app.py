@@ -671,7 +671,20 @@ with gr.Blocks(title=TITLE) as demo:
         agent_answer = gr.Textbox(label="Final answer", lines=4)
         agent_submit.click(ask_agent, agent_question, [agent_steps, agent_answer])
 
+def lan_address():
+    """This computer's address on the Wi-Fi, e.g. 10.50.33.81 (no data is actually sent)."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.connect(("8.8.8.8", 80))
+        return sock.getsockname()[0]
+
+
 if __name__ == "__main__":
+    # python app_template/app.py --lan   lets phones and laptops on the same Wi-Fi open the app.
+    lan = "--lan" in sys.argv
     print("Starting... open this address in your browser: http://127.0.0.1:7860")
+    if lan:
+        print(f"On the same Wi-Fi, open: http://{lan_address()}:7860")
     # share=True would put your app on the public internet. Do not.
-    demo.launch(share=False, css=CSS, theme=gr.themes.Base())
+    demo.launch(share=False, server_name="0.0.0.0" if lan else None, server_port=7860,
+                css=CSS, theme=gr.themes.Base())
