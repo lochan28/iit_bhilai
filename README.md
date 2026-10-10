@@ -1,6 +1,6 @@
 # CampusEvents: built with Gemma 4
 
-CampusEvents finds upcoming student events (hackathons, ideathons, webinars, workshops)
+CampusEvents finds upcoming student events (hackathons, ideathons, webinars, workshops, competitions, conferences)
 from **Unstop** and **Devpost**, filters them by distance from your city, and shows them on a map.
 
 It is built with **Gemma 4 (`gemma-4-26b-a4b-it`) through the Gemini API** (`google-genai`). Gemma:

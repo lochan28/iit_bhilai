@@ -1,6 +1,6 @@
 ---
 name: campus-events
-description: Find upcoming student hackathons, ideathons, webinars and workshops near a city, filtered by distance, and show their details and register links.
+description: Find upcoming student hackathons, ideathons, webinars, workshops, competitions and conferences near a city, filtered by distance, and show their details and register links.
 license: MIT
 ---
 # CampusEvents agent skill

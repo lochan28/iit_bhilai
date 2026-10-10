@@ -15,15 +15,18 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---- Tunable values --------------------------------------------------------
 GEMMA_SUMMARY_LIMIT = 15   # how many Unstop events get a Gemma summary (more = slower, more API calls)
-HTTP_TIMEOUT = 15          # seconds to wait for each API before giving up
+HTTP_TIMEOUT = 40          # seconds to wait for each API before giving up
 
 # ---- Fixed values ----------------------------------------------------------
 EVENTS_FILE = os.path.join(HERE, "events.json")
 GEOCACHE_FILE = os.path.join(HERE, "geocache.json")
 SUMMARY_CACHE_FILE = os.path.join(HERE, "summary_cache.json")
-UNSTOP_URL = ("https://unstop.com/api/public/opportunity/search-result"
-              "?opportunity=hackathons&oppstatus=open&per_page=30")
-DEVPOST_URL = "https://devpost.com/api/hackathons?status[]=upcoming"
+UNSTOP_URL = "https://unstop.com/api/public/opportunity/search-result"
+# Unstop category -> (our event type, how many pages of 100 to fetch)
+UNSTOP_CATEGORIES = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 1),
+                     "conferences": ("conference", 1), "competitions": ("competition", 2)}
+DEVPOST_URL = "https://devpost.com/api/hackathons"
+DEVPOST_PAGES = 5          # Devpost sends 9 events per page
 HEADERS = {"User-Agent": "Mozilla/5.0 (campus-events student project)"}
 
 
@@ -98,10 +101,46 @@ def unstop_link(seo_url):
     return seo_url if seo_url.startswith("http") else "https://unstop.com/" + seo_url.lstrip("/")
 
 
+def guess_type(title, default):
+    """Ideathons and webinars are often listed under other categories, so check the title."""
+    low = title.lower()
+    for word in ("ideathon", "webinar", "workshop"):
+        if word in low:
+            return word
+    return default
+
+
+def get_unstop_page(params):
+    """One page of Unstop results, trying twice because Unstop sometimes drops the connection."""
+    for attempt in (1, 2):
+        try:
+            r = requests.get(UNSTOP_URL, params=params, headers=HEADERS, timeout=HTTP_TIMEOUT)
+            r.raise_for_status()
+            return r.json()["data"]["data"]
+        except Exception as e:
+            print("Unstop", params["opportunity"], "page", params["page"], "try", attempt, "failed ->", e)
+            time.sleep(3)
+    return None
+
+
 def fetch_unstop():
-    r = requests.get(UNSTOP_URL, headers=HEADERS, timeout=HTTP_TIMEOUT)
-    r.raise_for_status()
-    items = r.json()["data"]["data"]
+    events = []
+    for category, (event_type, pages) in UNSTOP_CATEGORIES.items():
+        for page in range(1, pages + 1):
+            params = {"opportunity": category, "oppstatus": "open", "per_page": 100, "page": page}
+            items = get_unstop_page(params)
+            if items is None:          # keep the pages we already have
+                break
+            events += unstop_events(items, event_type)
+            if len(items) < 100:      # last page reached
+                break
+    if not events:
+        raise RuntimeError("Unstop sent no events")
+    return events
+
+
+def unstop_events(items, event_type):
+    """Turn raw Unstop items into our event schema."""
     events = []
     for it in items:
         reg = it.get("regnRequirements") or {}
@@ -115,7 +154,7 @@ def fetch_unstop():
             "id": make_id("unstop", it.get("id") or it.get("title")),
             "title": it.get("title", ""),
             "organiser": (it.get("organisation") or {}).get("name", ""),
-            "type": "hackathon",
+            "type": guess_type(it.get("title", ""), event_type),
             "mode": mode,
             "city": city if mode == "offline" else "",
             "start": reg.get("start_regn_dt", ""),
@@ -133,10 +172,14 @@ def fetch_unstop():
 
 # ---------- Devpost ----------
 def fetch_devpost():
-    r = requests.get(DEVPOST_URL, headers=HEADERS, timeout=HTTP_TIMEOUT)
-    r.raise_for_status()
+    items = []
+    for page in range(1, DEVPOST_PAGES + 1):
+        params = {"status[]": ["upcoming", "open"], "page": page}
+        r = requests.get(DEVPOST_URL, params=params, headers=HEADERS, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+        items += r.json().get("hackathons", [])
     events = []
-    for it in r.json().get("hackathons", []):
+    for it in items:
         loc = (it.get("displayed_location") or {}).get("location", "")
         mode = "online" if loc.lower() in ("online", "") else "offline"
         thumb = it.get("thumbnail_url") or ""
@@ -147,7 +190,7 @@ def fetch_devpost():
             "id": make_id("devpost", it.get("id") or it.get("url")),
             "title": it.get("title", ""),
             "organiser": it.get("organization_name", ""),
-            "type": "hackathon",
+            "type": guess_type(it.get("title", ""), "hackathon"),
             "mode": mode,
             "city": loc if mode == "offline" else "",
             "start": it.get("submission_period_dates", ""),
@@ -203,15 +246,17 @@ def add_coords(events):
 
 def refresh_events():
     """Fetch live data; on any failure, fall back to the saved events.json."""
-    events = []
-    for fetch in (fetch_unstop, fetch_devpost):   # one failing source should not lose the other
+    events, saved = [], load_events()
+    for source, fetch in (("unstop", fetch_unstop), ("devpost", fetch_devpost)):
         try:
             events += fetch()
-        except Exception as e:
-            print(fetch.__name__, "failed ->", e)
+        except Exception as e:     # one failing source should not lose its events
+            print(fetch.__name__, "failed, keeping its saved events ->", e)
+            events += [ev for ev in saved if ev.get("source") == source]
     if not events:
         print("Live fetch failed, using saved events.json")
         return load_events()
+    events = list({ev["id"]: ev for ev in events}.values())   # same event in two categories -> keep one
     events = add_coords(summarize_details(events))
     # keep events added from posters across refreshes
     events += [e for e in load_events() if e.get("source") == "poster"]

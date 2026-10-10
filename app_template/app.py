@@ -91,7 +91,7 @@ def refresh(city, radius, mode):
 
 
 POSTER_PROMPT = """Read this event poster. Return ONLY a JSON object with these keys:
-"title", "type" (one of hackathon, ideathon, webinar, workshop), "date" (YYYY-MM-DD if possible),
+"title", "type" (one of hackathon, ideathon, webinar, workshop, competition, conference), "date" (YYYY-MM-DD if possible),
 "mode" (online or offline), "city", "eligibility", "requirements", "register_link".
 Use "" for anything not on the poster."""
 

@@ -154,12 +154,12 @@ def filter_events(city, radius_km=100, mode="any", event_type="any"):
 
 @tool
 def search_events(city: str, radius_km: int = 100, mode: str = "any", event_type: str = "any"):
-    """Find upcoming student events (hackathons, ideathons, webinars, workshops) near a city. Returns id, title, city, distance, dates and register link.
+    """Find upcoming student events (hackathons, ideathons, webinars, workshops, competitions, conferences) near a city. Returns id, title, city, distance, dates and register link.
 
     city: the city name, for example Raipur
     radius_km: only offline events within this many km of the city are returned
     mode: online, offline or any
-    event_type: hackathon, ideathon, webinar, workshop or any
+    event_type: hackathon, ideathon, webinar, workshop, competition, conference or any
     """
     lat, _, near, online = filter_events(city, radius_km, mode.lower(), event_type.lower())
     if lat is None:
