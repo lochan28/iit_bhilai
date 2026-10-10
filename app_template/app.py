@@ -190,7 +190,7 @@ def bullets(text):
     return "<ul>" + "".join(f"<li>{esc(i)}</li>" for i in items) + "</ul>" if items else ""
 
 
-def details_html(ev):
+def details_html(ev, note=""):
     """The details page. Tiles and sections without data are left out."""
     tiles = [("Date", nice_date(event_date(ev))), ("Location", ev.get("city") or "Online"),
              ("Registration closes", nice_date(ev.get("end")))]
@@ -198,7 +198,8 @@ def details_html(ev):
                          f'<div class="ce-tile-value">{esc(v)}</div></div>' for k, v in tiles if v)
     sections = ""
     if ev.get("description"):
-        sections += f'<h4>Description</h4><p>{esc(ev["description"])}</p>'
+        heading = '<span class="ce-ai">✦ AI summary</span>' if ev.get("ai_summary") else "Description"
+        sections += f'<h4>{heading}</h4><p>{esc(ev["description"])}</p>'
     for label in ("eligibility", "requirements"):
         if ev.get(label):
             sections += f"<h4>{label.capitalize()}</h4>{bullets(ev[label])}"
@@ -210,7 +211,8 @@ def details_html(ev):
                     f'<div class="ce-caption">Opens the official registration page</div></div>')
     return (f'<div class="ce-details"><div class="ce-details-left">{thumb_html(ev, "ce-poster")}{register}</div>'
             f'<div class="ce-details-right"><div class="ce-tags">{tags_html(ev, True)}</div>'
-            f'<h2>{esc(ev["title"])}</h2><div class="ce-tiles">{tiles_html}</div>{sections}</div></div>')
+            f'<h2>{esc(ev["title"])}</h2><div class="ce-tiles">{tiles_html}</div>{sections}'
+            f'{note}</div></div>')
 
 
 MAP_STYLE = """<style>
@@ -301,7 +303,16 @@ def open_details(event_id, found):
     ev = ev or next((e for e in events.load_events() if e["id"] == event_id), None)
     if ev is None:
         return gr.update(), gr.update(), "<p class='ce-error'>Event not found.</p>", event_id
-    return gr.update(visible=False), gr.update(visible=True), details_html(ev), event_id
+    note = ""
+    if not ev.get("ai_summary") and ev.get("details_text"):
+        try:
+            ev = events.summarize_one(dict(ev))  # one Gemma call, then saved for everyone
+            for i, e in enumerate(found):        # so the card list shows it too
+                if e["id"] == event_id:
+                    found[i] = {**e, **ev}
+        except Exception as error:
+            note = f"<p class='ce-caption'>AI summary not available right now: {esc(gemma_client.describe_error(error))}</p>"
+    return gr.update(visible=False), gr.update(visible=True), details_html(ev, note), event_id
 
 
 def open_from_pin(value, found):
@@ -508,6 +519,7 @@ footer { display: none !important; }
 .ce-tile { background: var(--ce-inner); border-radius: 12px; padding: 10px 14px; }
 .ce-tile-label { color: var(--ce-muted); font-size: 13px; }
 .ce-tile-value { font-weight: 600; color: var(--ce-text); }
+.ce-ai { color: var(--ce-accent-ink); }
 
 /* poster panel */
 #ce-poster-panel { border: 1px solid var(--ce-border); border-radius: 18px; padding: 16px; background: var(--ce-card); }
@@ -531,6 +543,27 @@ footer { display: none !important; }
   .ce-poster { order: 0; aspect-ratio: 16 / 10; }
   .ce-details-right { order: 1; }
   .ce-register-card { order: 2; position: sticky; bottom: 0; z-index: 5; margin: 0; }
+  /* compact phone layout: never wider than the screen */
+  .gradio-container { padding: 4px 10px !important; width: 100% !important; max-width: 100vw !important;
+                      overflow-x: hidden; }
+  .gradio-container [style*="min-width"], .gradio-container .block, .gradio-container .form { min-width: 0 !important; }
+  #ce-top > :nth-child(3) { flex: 1 1 100px !important; }   /* radius dropdown shares the second row */
+  #ce-sort { max-width: 140px; }
+  #ce-top { gap: 8px; }
+  #ce-refresh-btn, #ce-theme-btn, #ce-poster-btn { flex: 0 0 44px !important; min-width: 44px !important;
+                                                   height: 44px; padding: 0 !important; }
+  #ce-poster-btn { font-size: 0 !important; }               /* camera icon only */
+  #ce-poster-btn::before { content: "📷"; font-size: 18px; }
+  #ce-chips label { padding: 5px 12px !important; font-size: 14px; }
+  #ce-list-head { flex-wrap: nowrap !important; }
+  .ce-card { padding: 12px !important; border-radius: 16px !important; }
+  .ce-thumb { width: 52px; height: 52px; border-radius: 12px; }
+  .ce-card-title { font-size: 15px; }
+  .ce-meta { font-size: 12px; margin-bottom: 6px; }
+  .ce-details-btn { max-width: none !important; width: 100%; }
+  .ce-details-right h2 { font-size: 22px; }
+  .ce-legend { font-size: 12px; padding: 4px 10px; }
+  #ce-poster-panel .row { flex-direction: column; }
 }
 """
 

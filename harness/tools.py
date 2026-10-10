@@ -177,5 +177,5 @@ def get_event_details(event_id: str):
     """
     for ev in events.load_events():
         if ev["id"] == event_id:
-            return ev
+            return {k: v for k, v in ev.items() if k != "details_text"}  # the long raw text is not needed
     raise ValueError(f"No event with id {event_id}")

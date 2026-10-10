@@ -15,7 +15,7 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---- Tunable values --------------------------------------------------------
-GEMMA_SUMMARY_LIMIT = 100  # how many Unstop events get a Gemma summary (more = slower, more API calls)
+GEMMA_SUMMARY_LIMIT = 0    # new Gemma summaries per refresh; the rest are made when someone opens an event
 HTTP_TIMEOUT = 40          # seconds to wait for each API before giving up
 
 # ---- Fixed values ----------------------------------------------------------
@@ -230,8 +230,38 @@ def short_text(text, limit=220):
     return text[:limit].rsplit(" ", 1)[0] + "…"
 
 
+SUMMARY_PROMPT = ("From this event description, return ONLY JSON with keys "
+                  '"description" (2-3 sentence summary for a student), "eligibility" (short), '
+                  '"requirements" (short).\n\n')
+
+
+def apply_summary(ev, summary):
+    """Copy Gemma's summary fields onto the event and mark it as AI-summarized."""
+    for k in ("description", "eligibility", "requirements"):
+        if summary.get(k):
+            ev[k] = str(summary[k])
+    ev["ai_summary"] = True
+
+
+def summarize_one(ev):
+    """Gemma summary for one event (used when someone opens an event that has none yet).
+    Cached in summary_cache.json and saved into events.json, so it runs once per event."""
+    cache = load_json(SUMMARY_CACHE_FILE, {})
+    if ev["id"] not in cache:
+        import gemma_client
+        cache[ev["id"]] = parse_json(gemma_client.ask(SUMMARY_PROMPT + ev["details_text"]))
+        save_json(SUMMARY_CACHE_FILE, cache)
+    apply_summary(ev, cache[ev["id"]])
+    events = load_events()
+    for i, saved in enumerate(events):
+        if saved["id"] == ev["id"]:
+            events[i] = {**saved, **{k: ev[k] for k in ("description", "eligibility", "requirements", "ai_summary")}}
+    save_json(EVENTS_FILE, events)
+    return ev
+
+
 def summarize_details(events):
-    """Ask Gemma to turn the first N Unstop 'details' HTML into short fields."""
+    """Ask Gemma to summarize the first N Unstop events. The rest get summarized when someone opens them."""
     cache = load_json(SUMMARY_CACHE_FILE, {})
     done = 0
     from bs4 import BeautifulSoup
@@ -240,28 +270,22 @@ def summarize_details(events):
         if not html:
             continue
         text = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
+        ev["details_text"] = text[:4000]   # kept so Gemma can summarize it later, on first view
         if not ev["description"]:      # until Gemma summarizes it, show the start of the real text
             ev["description"] = short_text(text)
+        if ev["id"] in cache:
+            apply_summary(ev, cache[ev["id"]])
+            continue
         if done >= GEMMA_SUMMARY_LIMIT:
             continue
         done += 1
-        if ev["id"] not in cache:
-            try:
-                import gemma_client
-                text = text[:4000]
-                prompt = ("From this event description, return ONLY JSON with keys "
-                          '"description" (1-2 sentences), "eligibility" (short), '
-                          '"requirements" (short).\n\n' + text)
-                cache[ev["id"]] = parse_json(gemma_client.ask(prompt))
-                save_json(SUMMARY_CACHE_FILE, cache)
-            except Exception as e:
-                print("Gemma summary skipped for", ev["title"], "->", e)
-                continue
-        for k in ("description", "eligibility", "requirements"):
-            if cache[ev["id"]].get(k):
-                ev[k] = str(cache[ev["id"]][k])
-    for ev in events:            # drop leftover raw HTML
-        ev.pop("details_html", None)
+        try:
+            import gemma_client
+            cache[ev["id"]] = parse_json(gemma_client.ask(SUMMARY_PROMPT + ev["details_text"]))
+            save_json(SUMMARY_CACHE_FILE, cache)
+            apply_summary(ev, cache[ev["id"]])
+        except Exception as e:
+            print("Gemma summary skipped for", ev["title"], "->", e)
     return events
 
 

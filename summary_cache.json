@@ -528,5 +528,160 @@
     "description": "THREWS ODYSSEY 2026 is an online research and innovation hackathon where participants build practical technology-based solutions for real-world problems. It features multiple tracks ranging from Artificial Intelligence to Web3 and Open Innovation.",
     "eligibility": "Open to college students, freshers, professionals, researchers, and independent developers, participating individually or in teams of up to two.",
     "requirements": "Submissions must include a project name, problem statement, solution description, tech stack, source code, and a working prototype or demonstration."
+  },
+  "unstop-2d83ab62": {
+    "description": "This webinar helps students and freshers understand current hiring trends and navigate the transition from education to employment. You will learn how to identify career pathways, approach job searches strategically, and meet employer expectations through insights from a senior HR leader.",
+    "eligibility": "Youth and freshers.",
+    "requirements": "Online access and completion of a post-webinar assessment for certification."
+  },
+  "unstop-e822e0f9": {
+    "description": "Explore the world of low-level software development beyond standard application and UI building. This session covers essential topics like memory management, hardware interaction, and operating systems. It is an ideal way for students to discover new career paths in systems development.",
+    "eligibility": "Students interested in software engineering.",
+    "requirements": "Interest in C/C++ and low-level programming."
+  },
+  "unstop-4a58d288": {
+    "description": "This session explores how modern AI tools are transforming software development through coding, debugging, and project creation. Students will learn how to leverage these intelligent tools effectively while maintaining a strong grasp of fundamental development skills for career preparation.",
+    "eligibility": "Not specified",
+    "requirements": "Not specified"
+  },
+  "unstop-3d00e920": {
+    "description": "This session explores the transition from academic projects to professional software development within the industry. Students will learn about essential entry-level skills, engineering workflows, and strategies for long-term career growth.",
+    "eligibility": "Students or aspiring software developers",
+    "requirements": "None specified"
+  },
+  "unstop-8c3afa56": {
+    "description": "This session explores the transition from college to professional software engineering. Students will learn about real-world development, team collaboration, and navigating professional codebases and workplace expectations.",
+    "eligibility": "Students or recent graduates entering software roles.",
+    "requirements": "None specified."
+  },
+  "unstop-d0323856": {
+    "description": "This session provides practical insights for students looking to launch a successful career in Data Engineering. You will learn about essential technologies, how to build impactful portfolio projects, and effective strategies for interview preparation and navigating the job market.",
+    "eligibility": "Students or aspiring Data Engineers.",
+    "requirements": "None specified."
+  },
+  "unstop-f29384e5": {
+    "description": "Discover the technical journey that transforms a product idea into a functional digital application. This session explores backend systems, APIs, and how product and engineering teams collaborate to overcome development challenges.",
+    "eligibility": "Not specified",
+    "requirements": "Not specified"
+  },
+  "unstop-8e9d4006": {
+    "description": "This free 7-day online workshop covers essential Python Object-Oriented Programming concepts through practical examples and a hands-on mini-project. It is designed to help students and beginners strengthen their programming fundamentals and prepare for technical interviews.",
+    "eligibility": "College students, recent graduates, freshers, and Python beginners.",
+    "requirements": "Basic Python knowledge (optional) and a laptop/computer with internet access."
+  },
+  "unstop-5a9bca35": {
+    "description": "This free 7-day online workshop introduces the core concepts of Java Object-Oriented Programming through practical coding and hands-on exercises. Participants will master the four pillars of OOP and build a mini project to strengthen their programming fundamentals.",
+    "eligibility": "B.Tech, B.E., BCA, MCA, CS/IT students, freshers, and beginners with little or no Java experience.",
+    "requirements": "No specific technical prerequisites mentioned; designed for beginners."
+  },
+  "unstop-3ad6d547": {
+    "description": "This webinar introduces the fundamentals of Generative AI and its transformative impact on education and the workplace. Students will learn about practical AI tools, ethical usage, and how to leverage AI to prepare for future career opportunities.",
+    "eligibility": "Students and professionals.",
+    "requirements": "An internet connection for online participation."
+  },
+  "unstop-d65349e7": {
+    "description": "This session explores the complex engineering required to make modern digital applications fast, reliable, and scalable. Students will learn about the vital role of backend engineers, including working with APIs, databases, and translating business requirements into technical solutions.",
+    "eligibility": "Students interested in backend engineering and software development.",
+    "requirements": "Interest in backend technologies and access to an online platform."
+  },
+  "unstop-24d4c50d": {
+    "description": "This session explores how AI is transforming software engineering by automating code generation and routine tasks. Students will learn why critical thinking, design, and problem-solving are becoming more essential than coding alone in an AI-driven era.",
+    "eligibility": "Students interested in software engineering and AI.",
+    "requirements": "Online access for the virtual session."
+  },
+  "unstop-44b17b2c": {
+    "description": "This national-level webinar explores emerging technologies, challenges, and future opportunities in next-generation mass transfer. Led by expert speaker Dr. Binu K G, students will gain valuable insights into the evolving field of mass transfer. All participants who attend will receive a certificate of participation.",
+    "eligibility": "Students, faculty, and professionals.",
+    "requirements": "Mandatory joining of the official WhatsApp group to attend and receive updates."
+  },
+  "unstop-d8b74872": {
+    "description": "Illuminate is an immersive 6-hour workshop organized by E-Cell Great Lakes and E-Cell IIT Bombay to provide practical exposure to the startup ecosystem. Through interactive sessions and hands-on learning, students will explore innovation, business development, and leadership beyond textbook theory. Participants will also gain access to experienced speakers, networking opportunities, and an official certificate.",
+    "eligibility": "College students interested in entrepreneurship, innovation, or startups.",
+    "requirements": "No prior entrepreneurial experience required; ₹699 participation fee."
+  },
+  "unstop-ce6b1d34": {
+    "description": "This virtual session explores how software interacts with hardware to create reliable, real-world products. You will learn about embedded systems, systems-level problem solving, and the engineering mindset required for product development. It is an excellent opportunity to explore career pathways in embedded and systems engineering.",
+    "eligibility": "Students interested in software development, electronics, or systems engineering.",
+    "requirements": "Access to a device for a virtual session."
+  },
+  "unstop-88150e88": {
+    "description": "This online session provides a practical perspective on the evolving landscape of modern Android development and industry standards. Students will explore essential tools, current ecosystem trends, and the specific skills required to build a successful career in mobile technology.",
+    "eligibility": "Students interested in mobile development.",
+    "requirements": "Internet access for the online session."
+  },
+  "unstop-d5b9c4ae": {
+    "description": "This virtual session explores how the rapid growth of AI is reshaping the technology industry and professional career paths. You will learn how to develop the right mindset for mastering emerging technologies and identify real-world opportunities to apply AI skills. The session focuses on bridging the gap between technical knowledge and strategic career development.",
+    "eligibility": "Students or individuals interested in AI and technology careers.",
+    "requirements": "Virtual session access; no specific technical prerequisites mentioned."
+  },
+  "unstop-fda6533a": {
+    "description": "This intensive 14-day workshop helps aspiring developers transition from basic coding to deploying production-level web applications. Through live interactive sessions, students will master frontend architecture, backend API development, and real-world project deployment.",
+    "eligibility": "College students, freshers, and self-taught developers.",
+    "requirements": "Foundational programming interest; no advanced framework experience required."
+  },
+  "unstop-454a1033": {
+    "description": "This webinar introduces students to the world of Artificial Intelligence and explores how it is shaping future careers. Participants will gain practical insights into AI tools, generative AI, and the essential skills needed to stay industry-ready.",
+    "eligibility": "Open to students from all colleges and specializations.",
+    "requirements": "No prior AI knowledge required; individual participation."
+  },
+  "unstop-57d9873f": {
+    "description": "This virtual webinar explores how artificial intelligence is transforming the software engineering landscape and reshaping the developer journey. Students will learn how to use intelligent assistants and LLMs effectively while maintaining essential core programming skills.",
+    "eligibility": "Beginners learning to code and aspiring software professionals.",
+    "requirements": "None specified."
+  },
+  "unstop-d9367b06": {
+    "description": "This virtual session explores how technology career paths are evolving, specifically focusing on the roles of data engineering and artificial intelligence. Students will learn about the essential technical and soft skills needed to succeed and remain adaptable in the modern digital landscape.",
+    "eligibility": "Students interested in exploring technology career paths.",
+    "requirements": "Access to a virtual meeting platform."
+  },
+  "unstop-cb126e0d": {
+    "description": "This session explores how artificial intelligence is reshaping software development and the evolving role of engineers. You will learn which tasks AI can handle and which core skills, such as problem-solving and systems thinking, remain essential for future success. It is designed to help students understand how to stay relevant in an AI-driven industry.",
+    "eligibility": "Students and aspiring software developers.",
+    "requirements": "None specified."
+  },
+  "unstop-f37a480a": {
+    "description": "This online session explores how artificial intelligence is being integrated into modern business workflows and the broader technology ecosystem. Students will learn to approach AI from a practical, problem-solving perspective and identify potential career opportunities in an AI-driven industry.",
+    "eligibility": "Students and professionals interested in AI.",
+    "requirements": "Online access."
+  },
+  "unstop-7d051c86": {
+    "description": "This session explores how artificial intelligence is reshaping technology careers and what aspiring engineers need to do to stay competitive. You will learn about essential skills to focus on, how to choose the right learning paths, and how to build a profile that attracts recruiters.",
+    "eligibility": "Students and aspiring technology professionals.",
+    "requirements": "None specified."
+  },
+  "unstop-03a737b2": {
+    "description": "This 90-minute interactive webinar introduces students to the fundamentals of databases, DBMS, SQL, and MySQL. Participants will learn how applications manage data and gain hands-on exposure to basic SQL queries through live demonstrations. It is an ideal starting point for anyone interested in software development or data analysis.",
+    "eligibility": "Open to all college students and beginners of any academic background; no prior database or SQL knowledge is required.",
+    "requirements": "A laptop or desktop computer, a stable internet connection, a web browser, and a GitHub account."
+  },
+  "unstop-3d36e042": {
+    "description": "This webinar explores how startups can build resilient supply chain systems to support scaling and sustainable growth. Participants will learn about sourcing, supplier management, inventory control, and logistics to prepare their businesses for increased demand.",
+    "eligibility": "Startup founders, entrepreneurs, and students interested in operations and supply chain management.",
+    "requirements": "Internet access for an online webinar."
+  },
+  "unstop-08f1e321": {
+    "description": "This free live webinar by TaskVeda focuses on boosting interview confidence and mastering essential communication skills. Students will learn how to answer common interview questions, improve body language, and handle tricky HR scenarios to secure job offers.",
+    "eligibility": "All college students (any year, any branch).",
+    "requirements": "Online access via Google Meet and registration."
+  },
+  "unstop-fd89aba5": {
+    "description": "ADORE is hosting a free online webinar series throughout October 2026 focused on building practical skills in marketing, finance, and professional development. These expert-led sessions cover essential topics like stock market investing and digital advertising to help prepare students for their future careers.",
+    "eligibility": "Students and individuals interested in career skill development.",
+    "requirements": "Online access via Google Meet and registration."
+  },
+  "unstop-0f06165f": {
+    "description": "Join EHAX and TryHackMe for a live, hands-on cybersecurity workshop where you will practice hacking real virtual machines through interactive challenges. Led by TryHackMe's content team, this session offers a chance to win premium prizes and provide direct feedback to the platform developers.",
+    "eligibility": "Students interested in cybersecurity, software engineering, or technology; no prior experience required.",
+    "requirements": "A fully charged laptop."
+  },
+  "unstop-c836be96": {
+    "description": "This international conference offers students a unique opportunity to present their research on cutting-edge topics like AI, biotechnology, and sustainable materials. Attendees can network with global experts, explore collaborative research opportunities, and compete for prestigious awards like the Young Researcher Award. It is an excellent platform for gaining academic exposure and publishing work in indexed journals.",
+    "eligibility": "Faculty, scientists, research scholars, industry professionals, policy makers, entrepreneurs, and UG/PG students.",
+    "requirements": "Submit an abstract by 15th October 2026 and a full paper by 30th November 2026."
+  },
+  "unstop-0d439084": {
+    "description": "The 1st International Mechanical Youth Summit offers B.Tech. students a platform to explore advanced technical tracks like robotics, automobile engineering, and additive manufacturing. Participants can gain valuable industry mentorship, networking opportunities, and the chance to publish research in Scopus-indexed journals.",
+    "eligibility": "B.Tech. students",
+    "requirements": "Submit a one-page abstract of a B.Tech. project or technical paper via email by November 15, 2026."
   }
 }
