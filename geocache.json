@@ -1,0 +1,107 @@
+{
+  "raipur, chhattisgarh": [
+    21.2514,
+    81.6296
+  ],
+  "raipur": [
+    21.2514,
+    81.6296
+  ],
+  "bhilai, chhattisgarh": [
+    21.1938,
+    81.3509
+  ],
+  "nagpur, maharashtra": [
+    21.1458,
+    79.0882
+  ],
+  "bhubaneswar, odisha": [
+    20.2961,
+    85.8245
+  ],
+  "hyderabad, telangana": [
+    17.385,
+    78.4867
+  ],
+  "bengaluru, karnataka": [
+    12.9716,
+    77.5946
+  ],
+  "new delhi, delhi": [
+    28.6139,
+    77.209
+  ],
+  "mumbai, maharashtra": [
+    19.076,
+    72.8777
+  ],
+  "pune, maharashtra": [
+    18.5204,
+    73.8567
+  ],
+  "west delhi, delhi": [
+    28.6409705,
+    77.0949778
+  ],
+  "amloh, punjab": [
+    30.6115717,
+    76.2316357
+  ],
+  "bangalore, karnataka": [
+    12.9767936,
+    77.590082
+  ],
+  "vile parle, maharashtra": [
+    19.0999098,
+    72.8440038
+  ],
+  "guwahati, assam": [
+    26.1805978,
+    91.753943
+  ],
+  "delhi, delhi": [
+    28.6664535,
+    77.2169781
+  ],
+  "east delhi, delhi": [
+    28.6252148,
+    77.2960034
+  ],
+  "farrukhnagar, haryana": [
+    28.467225,
+    76.8253658
+  ],
+  "vellore, tamil nadu": [
+    12.9021849,
+    79.061104
+  ],
+  "jaipur, rajasthan": [
+    26.9154576,
+    75.8189817
+  ],
+  "talegaon dabhade, maharashtra": [
+    18.7337107,
+    73.6728593
+  ],
+  "south west delhi, delhi": [
+    28.5864481,
+    76.9793527
+  ],
+  "gurgaon, haryana": [
+    28.4646148,
+    77.0299194
+  ],
+  "bangalore urban, karnataka": [
+    13.0,
+    77.583333
+  ],
+  "ghaziabad, uttar pradesh": [
+    28.7749966,
+    77.4586967
+  ],
+  "santa clara convention center + online": null,
+  "toronto": [
+    43.6534817,
+    -79.3839347
+  ]
+}

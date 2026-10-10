@@ -1,0 +1,77 @@
+{
+  "unstop-2452ca41": {
+    "description": "HACK@BVP 8.0 is a flagship 24-hour hackathon organized by BVCOE, New Delhi, challenging innovators to build technology-driven solutions for real-world problems. Participants can compete across various domains for a prize pool of over ₹30 Lakhs.",
+    "eligibility": "Developers, innovators, designers, and problem-solvers.",
+    "requirements": "Participation in an online Discord round and the offline on-campus round."
+  },
+  "unstop-2f17821b": {
+    "description": "Code Auction is a team-based competitive coding event that combines programming with strategic, auction-based decision-making. Teams bid virtual currency on problems and utilize Power Cards to maximize their final scores.",
+    "eligibility": "Teams consisting of 2–4 members.",
+    "requirements": "A team of 2–4 members and strategic management of allocated token currency."
+  },
+  "unstop-5c2d69dc": {
+    "description": "CRAFTCON 2K26 is a 24-hour collegiate hackathon at Desh Bhagat University where innovators solve real-world challenges through technology and creativity. Under the theme 'IMAGINE. BUILD. BEYOND.', participants transform their ideas into working prototypes.",
+    "eligibility": "Teams of 2-6 members, including beginners, experienced developers, and inter-college teams.",
+    "requirements": "Register via Unstop and participate in the 24-hour offline hackathon to build and demonstrate an original, working solution."
+  },
+  "unstop-315b37d6": {
+    "description": "A 24-hour hackathon focused on developing innovative solutions to improve STEM education for school students, particularly in rural and underserved communities.",
+    "eligibility": "Engineering students in teams of exactly 5 members.",
+    "requirements": "Complete the confirmation form, pay registration fees, and build/demonstrate a solution within 24 hours."
+  },
+  "unstop-c131004b": {
+    "description": "KEEP ALIVE '26 is a national incident response championship where DevOps students investigate microservices failures using an observability stack. Participants must identify root causes and propose fixes through a multi-stage competition.",
+    "eligibility": "Teams of exactly three students from the same college (UG, PG, or diploma), including up to one recent graduate (2024–2026); PhD students are ineligible.",
+    "requirements": "6–12 months of DevOps experience (Linux, Docker, Kubernetes) and at least two laptops per team for the finale."
+  },
+  "unstop-b28cd847": {
+    "description": "D3COY is a 24-hour national-level innovation hackathon focused on tackling real-world challenges in security, privacy, and digital trust. Participants will build resilient products and adapt to real-time constraints in a high-intensity adversarial environment.",
+    "eligibility": "All undergraduate students from any branch or background; inter-college teams are permitted.",
+    "requirements": "Teams of 2-4 members must pay a ₹200 registration fee and pass Round 0 by submitting a solution PPT and member resumes."
+  },
+  "unstop-df00d357": {
+    "description": "Flash Code is a fast-paced coding challenge hosted by DotSlash, IIIT Nagpur, featuring three surprise mini-games. Participants compete individually for a share of a 35,000 INR prize pool.",
+    "eligibility": "1st and 2nd year B.E./B.Tech. students.",
+    "requirements": "Individual participation; requires speed, accuracy, creativity, and adaptability."
+  },
+  "unstop-b943e0e5": {
+    "description": "Ecclesia 2026 is a technology and innovation hackathon organized by Assam Down Town University that challenges students to develop practical, tech-driven solutions for real-world problems. The competition progresses through an online screening round, an offline development challenge, and a final presentation.",
+    "eligibility": "Open to all undergraduate students; teams can consist of members from different colleges and academic disciplines.",
+    "requirements": "Teams of 2–4 members must register via Unstop, submit a PPT for the initial screening, and maintain a GitHub repository for the offline development phase."
+  },
+  "unstop-6e76cd29": {
+    "description": "Algorithmia is a prestigious national-level ICPC-style coding competition organized by the DotSlash Coding Club of IIIT Nagpur. The event features an online preliminary round followed by an on-campus finale at IIIT Nagpur.",
+    "eligibility": "Teams of 2 to 3 members with strong algorithmic and programming skills.",
+    "requirements": "Registration on Codeforces and a laptop for the onsite final round."
+  },
+  "unstop-9fc9b5c1": {
+    "description": "Teams compete to engineer an autonomous MicroMouse robot that navigates a 16x16 maze to find the shortest path from a corner to the center. The goal is to complete the mission in the fastest time possible.",
+    "eligibility": "Teams of 1–5 members.",
+    "requirements": "An autonomous robot measuring no more than 16x16x10 cm, powered by onboard batteries (max 15V), without cameras or harmful mechanisms, and must pass technical inspection."
+  },
+  "unstop-ba3c88fc": {
+    "description": "Kritical Hacks 2026 is a 24-hour open innovation hackathon where participants build technology-driven solutions in either the AI/ML or Web3 tracks. It challenges students and professionals to create practical applications featuring meaningful TinyFish integration.",
+    "eligibility": "Undergraduate/postgraduate students and working professionals or independent builders.",
+    "requirements": "Mandatory functional TinyFish integration and participation in all mentorship, evaluation, and presentation checkpoints."
+  },
+  "unstop-6e93fe18": {
+    "description": "GameForge ’26 is a two-day offline game jam hosted by the GameDev Guild Students Club at USAR, GGSIPU, where participants develop digital games based on a surprise theme. The event will take place on October 21–22, 2026, as part of Elysian 2026.",
+    "eligibility": "College students interested in game development, participating individually or in teams of up to 4 members.",
+    "requirements": "Pre-registration, adherence to a surprise theme, and submission of a playable digital game build developed during the event."
+  },
+  "unstop-2030d78a": {
+    "description": "Debug Decrypt 3.0 is a multi-stage competitive programming competition testing knowledge of Data Structures, Algorithms, and problem-solving. The event progresses from an online qualification round to on-campus algorithmic and championship rounds.",
+    "eligibility": "Students from all academic years, including first-year students.",
+    "requirements": "Teams of 2 to 3 members; registration must be completed by 12 October 2026."
+  },
+  "unstop-086d02b2": {
+    "description": "CodePuneThinkers is a 36-hour online hackathon focused on Agentic AI, Full-Stack Product Engineering, and Open Innovation. Participants compete for a ₹30,000 prize pool, internships, and incubation opportunities.",
+    "eligibility": "Teams of 1–4 members.",
+    "requirements": "Build solutions in the specified hackathon themes within the 36-hour timeframe."
+  },
+  "unstop-b21a5be3": {
+    "description": "NEXORA ’26 is a technology-driven project-building event where participants develop innovative solutions to real-world challenges. It provides a platform for developers and innovators to showcase their technical and presentation skills by creating working prototypes.",
+    "eligibility": "Students aged 17 and above; can participate individually or in teams of 2–3 members.",
+    "requirements": "Registration fee (₹100 individual/₹200 team), personal laptops, chargers, and own internet connectivity."
+  }
+}

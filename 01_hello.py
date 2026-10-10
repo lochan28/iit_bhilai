@@ -13,7 +13,7 @@ What you should see:
 import gemma_client  # our helper: it handles your key, retries and saving answers
 
 # The prompt is the question we send to the model. Change it and run again.
-prompt = "Write a two-line poem about a student debugging code at night."
+prompt = "explain blackhole to 10 year old."
 
 # ask() sends the prompt to Gemma 4 through the Gemini API and returns the answer as text.
 answer = gemma_client.ask(prompt)

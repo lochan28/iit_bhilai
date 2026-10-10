@@ -122,3 +122,60 @@ def save_note(text: str):
     with NOTES_FILE.open("a", encoding="utf-8") as file:
         file.write(text[:500].replace("\n", " ") + "\n")
     return "Saved the note."
+
+
+# ---------- CampusEvents: search the saved events.json ----------
+# These tools only READ events.json. Looking up a city name may use the geocoder (cached in geocache.json).
+
+import sys  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so we can import events.py
+import events  # noqa: E402
+
+
+def filter_events(city, radius_km=100, mode="any", event_type="any"):
+    """Shared filter for the map tab and the agent.
+    Returns (city_lat, city_lon, offline events sorted by distance, online events)."""
+    lat, lon = events.geocode(city)
+    near, online = [], []
+    for ev in events.load_events():
+        if event_type != "any" and ev.get("type") != event_type:
+            continue
+        if ev["mode"] == "online":
+            if mode in ("any", "online"):
+                online.append(ev)
+        elif mode in ("any", "offline") and lat is not None and ev.get("lat") is not None:
+            distance = events.haversine_km(lat, lon, ev["lat"], ev["lon"])
+            if distance <= radius_km:
+                near.append(dict(ev, distance_km=round(distance)))
+    near.sort(key=lambda e: e["distance_km"])
+    return lat, lon, near, online
+
+
+@tool
+def search_events(city: str, radius_km: int = 100, mode: str = "any", event_type: str = "any"):
+    """Find upcoming student events (hackathons, ideathons, webinars, workshops) near a city. Returns id, title, city, distance, dates and register link.
+
+    city: the city name, for example Raipur
+    radius_km: only offline events within this many km of the city are returned
+    mode: online, offline or any
+    event_type: hackathon, ideathon, webinar, workshop or any
+    """
+    lat, _, near, online = filter_events(city, radius_km, mode.lower(), event_type.lower())
+    if lat is None:
+        raise ValueError(f"Could not find the city '{city}'.")
+    keys = ("id", "title", "mode", "city", "distance_km", "start", "end", "register_url")
+    found = [{k: e.get(k) for k in keys} for e in (near + online)[:15]]
+    return found or "No events found. Try a bigger radius_km."
+
+
+@tool
+def get_event_details(event_id: str):
+    """Get the full record of one event (description, eligibility, requirements, links) by the id from search_events.
+
+    event_id: the id returned by search_events
+    """
+    for ev in events.load_events():
+        if ev["id"] == event_id:
+            return ev
+    raise ValueError(f"No event with id {event_id}")
