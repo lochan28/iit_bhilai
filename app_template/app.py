@@ -378,7 +378,12 @@ footer { display: none !important; }
 .ce-summary span { color: #8b80f0; }
 .ce-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .ce-tag { border: 1px solid #3a3a3a; border-radius: 8px; padding: 2px 8px; font-size: 12px; color: #d0d0d0; }
-.ce-details-btn { align-self: flex-end; max-width: 130px; border-radius: 12px !important; }
+.ce-details-btn { align-self: flex-end; max-width: 130px; border-radius: 12px !important;
+                  border: 1px solid #3a3a3a !important; padding: 8px 16px !important; font-weight: 600; }
+.ce-details-btn:hover { background: #262626 !important; }
+/* Gradio wraps inputs in a grey "form" box; remove it around the chips and the sort menu */
+.form:has(#ce-chips), .form:has(#ce-sort), .form:has(#ce-count) {
+  background: transparent !important; border: none !important; box-shadow: none !important; }
 
 /* details page */
 #ce-back { max-width: 180px; border-radius: 999px; }
@@ -425,8 +430,11 @@ footer { display: none !important; }
 
 # ---------- layout ----------
 
+# The first map and list are built once at startup, so the page never opens empty.
+FIRST_MAP, FIRST_FOUND, FIRST_COUNT = show_events(DEFAULT_CITY, DEFAULT_RADIUS, "All", "Nearest")
+
 with gr.Blocks(title=TITLE) as demo:
-    found_state = gr.State([])       # the events currently shown
+    found_state = gr.State(FIRST_FOUND)   # the events currently shown
     selected_state = gr.State("")    # id of the last opened event
 
     with gr.Tab("Events"):
@@ -455,10 +463,10 @@ with gr.Blocks(title=TITLE) as demo:
 
             with gr.Row(elem_id="ce-body", equal_height=False):
                 with gr.Column(scale=58):
-                    map_box = gr.HTML()
+                    map_box = gr.HTML(FIRST_MAP)
                 with gr.Column(scale=42, elem_id="ce-list-col"):
                     with gr.Row(elem_id="ce-list-head"):
-                        count = gr.Markdown(elem_id="ce-count")
+                        count = gr.Markdown(FIRST_COUNT, elem_id="ce-count")
                         sort = gr.Dropdown(["Nearest", "Closing soon"], value="Nearest",
                                            show_label=False, elem_id="ce-sort", min_width=150)
 
@@ -484,7 +492,7 @@ with gr.Blocks(title=TITLE) as demo:
         # ----- wiring -----
         list_inputs = [city, radius, chip, sort]
         list_outputs = [map_box, found_state, count]
-        for trigger in (city.submit, radius.change, chip.change, sort.change, demo.load):
+        for trigger in (city.submit, radius.change, chip.change, sort.change):
             trigger(show_events, list_inputs, list_outputs)
         refresh_btn.click(refresh, list_inputs, list_outputs)
         back_btn.click(back_to_events, None, [main_view, details_view])
