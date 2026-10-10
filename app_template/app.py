@@ -210,7 +210,15 @@ def map_html(lat, lon, radius, found):
     # Free OpenStreetMap tiles, turned dark with a colour filter (dark tile services now need a key).
     m.get_root().header.add_child(folium.Element(
         "<style>.leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.75) contrast(1.1)}"
-        ".leaflet-container{background:#141414}</style>"))
+        ".leaflet-container{background:#141414;font-family:system-ui,sans-serif}"
+        # tiny overlap hides the thin lines between map tiles
+        ".leaflet-tile-container img{width:256.6px!important;height:256.6px!important}"
+        # hover card: dark, white title, wraps long names
+        ".leaflet-tooltip{background:#1c1c1c!important;color:#a0a0a0!important;border:1px solid #3a3a3a!important;border-radius:12px!important;"
+        "padding:10px 12px!important;white-space:normal!important;width:max-content!important;max-width:240px!important;font-size:12px!important;"
+        "box-shadow:0 6px 20px rgba(0,0,0,.5)!important}"
+        ".leaflet-tooltip b{color:#fff!important;font-size:14px!important;font-weight:600!important;display:block!important;margin-bottom:3px!important}"
+        ".leaflet-tooltip-top:before{border-top-color:#3a3a3a!important}</style>"))
     folium.Circle([lat, lon], radius=radius * 1000, color="#7b70e8", weight=2, dash_array="6 6",
                   fill=True, fill_color=PURPLE, fill_opacity=0.08).add_to(m)
     folium.CircleMarker([lat, lon], radius=6, color=PURPLE, fill=True, fill_opacity=1,
@@ -218,9 +226,10 @@ def map_html(lat, lon, radius, found):
     for ev in found:
         if ev.get("lat") is None:
             continue
-        tip = f"<b>{esc(ev['title'])}</b><br>{esc(ev.get('city'))}"
+        tip = f"<b>{esc(ev['title'])}</b>{meta_line(ev)}"
         folium.CircleMarker([ev["lat"], ev["lon"]], radius=8, color="white", weight=1, fill=True,
-                            fill_color=pin_color(ev), fill_opacity=1, tooltip=tip).add_to(m)
+                            fill_color=pin_color(ev), fill_opacity=1,
+                            tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(m)
     d = radius / 111  # about 111 km per degree, so the whole circle fits on screen
     m.fit_bounds([[lat - d, lon - d], [lat + d, lon + d]])
     page = html.escape(m.get_root().render(), quote=True)
@@ -410,6 +419,8 @@ footer { display: none !important; }
 /* phone */
 @media (max-width: 768px) {
   #ce-top { flex-wrap: wrap; }
+  #ce-top > :first-child { min-width: 40px !important; flex: 0 0 40px !important; }
+  #ce-top > :nth-child(2) { flex: 1 1 calc(100% - 52px) !important; min-width: 0 !important; }
   .ce-logo span:last-child { display: none; }
   #ce-chips .wrap { flex-wrap: nowrap; overflow-x: auto; }
   #ce-body { flex-direction: column; }
