@@ -14,7 +14,7 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---- Tunable values --------------------------------------------------------
-GEMMA_SUMMARY_LIMIT = 15   # how many Unstop events get a Gemma summary (more = slower, more API calls)
+GEMMA_SUMMARY_LIMIT = 100  # how many Unstop events get a Gemma summary (more = slower, more API calls)
 HTTP_TIMEOUT = 40          # seconds to wait for each API before giving up
 
 # ---- Fixed values ----------------------------------------------------------
@@ -159,6 +159,8 @@ def unstop_events(items, event_type):
             "city": city if mode == "offline" else "",
             "start": reg.get("start_regn_dt", ""),
             "end": reg.get("end_regn_dt", ""),
+            "event_end": it.get("end_date") or "",    # when the event itself ends
+            "is_free": not it.get("isPaid"),
             "description": "",
             "eligibility": "",
             "requirements": team,
@@ -199,6 +201,8 @@ def fetch_devpost():
             "eligibility": "",
             "requirements": "",
             "register_url": it.get("url", ""),
+            "event_end": "",
+            "is_free": None,                          # Devpost does not say
             "poster_url": thumb,
             "source": "devpost",
         })

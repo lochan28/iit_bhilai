@@ -73,5 +73,445 @@
     "description": "NEXORA ’26 is a technology-driven project-building event where participants develop innovative solutions to real-world challenges. It provides a platform for developers and innovators to showcase their technical and presentation skills by creating working prototypes.",
     "eligibility": "Students aged 17 and above; can participate individually or in teams of 2–3 members.",
     "requirements": "Registration fee (₹100 individual/₹200 team), personal laptops, chargers, and own internet connectivity."
+  },
+  "unstop-e950297f": {
+    "description": "IDEATHON 2026 is a one-day technology-focused event where participants tackle on-the-spot problem statements to develop innovative prototypes. The challenge involves transforming creative ideas into working tech solutions like websites or apps using AI tools.",
+    "eligibility": "Developers, designers, creative thinkers, or anyone passionate about innovation.",
+    "requirements": "Ability to develop a working prototype (e.g., website or app) using AI tools and other technologies within a limited timeframe."
+  },
+  "unstop-89d3134f": {
+    "description": "Line-O-Mania is an autonomous robotics competition where teams build bots to navigate a complex black-and-white line track featuring various obstacles. The goal is to complete the course in the shortest time possible while managing unpredictable track elements.",
+    "eligibility": "Open to all teams, including inter-college teams; however, a participant cannot be in more than one team.",
+    "requirements": "Autonomous robots (no pre-made kits or RC), maximum 12V DC, a designated team leader, and adherence to strict navigation and safety rules."
+  },
+  "unstop-c118f918": {
+    "description": "GLITCHED is a multi-round competitive debugging event organized by GDA CRCE designed to test diagnostic speed and systems thinking under time pressure. The competition progresses from pseudo-code debugging to game debugging and a complex final challenge.",
+    "eligibility": "Only FR CRCE students; inter-college team members are not allowed.",
+    "requirements": "Teams must consist of exactly 3 members from the same year, branch, and division."
+  },
+  "unstop-3a13632d": {
+    "description": "Escape Room is a technical challenge organized by CodeStorm that tests coding, algorithmic problem-solving, debugging, and teamwork under time pressure. The event features specialized tracks for both Junior and Senior students.",
+    "eligibility": "Teams of 1-2 members; CRCE students must be from the same class, while non-CRCE students must be from the same academic year.",
+    "requirements": "Participants must bring their own laptops and possess relevant skills in web development (Junior track) or debugging and DSA (Senior track)."
+  },
+  "unstop-445ebabc": {
+    "description": "Sync or Sink is a two-round team challenge that prioritizes effective communication and collaborative problem-solving. Participants must navigate information-sharing tasks and technical challenges to succeed.",
+    "eligibility": "Not specified (requires teams)",
+    "requirements": "Teamwork, strong communication, and problem-solving skills"
+  },
+  "unstop-0e228093": {
+    "description": "Build an autonomous robot to map and solve a 10×10 grid maze through a search run followed by speed runs. The fastest successful run determines the winner.",
+    "eligibility": "Individuals or teams of 2-5 members.",
+    "requirements": "Self-built, fully autonomous robot within a 19×19 cm bounding box and 90mm height, featuring an accessible power switch and safe battery transport."
+  },
+  "unstop-9edc3f7c": {
+    "description": "Design-A-thon is a premier UI/UX hackathon organized by Strokes, IIIT Nagpur, that challenges participants to solve real-world problems through user-centric design. The competition features a research-driven online case study round followed by a 16-hour on-campus design hackathon.",
+    "eligibility": "Open to all students across India (any discipline) as individuals or teams of 2–4 members.",
+    "requirements": "Original work, personal laptops for offline rounds, and a Figma design file link containing research, wireframes, and prototypes."
+  },
+  "unstop-6956a38d": {
+    "description": "The C Code Auction Arena 2026 is a unique two-round competition that combines C programming challenges with strategic auction-based bidding. Participants must excel in an MCQ qualifier to reach the final auction arena and compete for a ₹7,000 prize pool.",
+    "eligibility": "Individual eligible college students with a basic understanding of C programming.",
+    "requirements": "Basic C programming knowledge and completion of both Unstop and Google Form registrations."
+  },
+  "unstop-33bc4296": {
+    "description": "Indiathon is a 14-day startup hackathon where participants transform an idea into a functional MVP. It challenges innovators to build real-world solutions such as websites, applications, or prototypes.",
+    "eligibility": "Individuals or teams of up to 4 members.",
+    "requirements": "A functional MVP and a maximum 2-minute explanatory video."
+  },
+  "unstop-66ae5545": {
+    "description": "ARES × Shunya is an AI-versus-AI Pokémon battle competition where participants develop machine-learning models or algorithmic agents to compete autonomously. These agents face off in a live, offline tournament using the Pokémon Showdown simulation engine.",
+    "eligibility": "Teams of 1–2 members.",
+    "requirements": "Develop and submit an autonomous AI algorithm that complies with the provided ruleset and API before the deadline."
+  },
+  "unstop-beb471fe": {
+    "description": "RAGNAROK is an agentic AI hackathon at IIIT Nagpur's TantraFiesta 2026 where students design and build autonomous AI systems. It features an online MCQ qualifying round followed by a 24-hour on-site building finale.",
+    "eligibility": "Students currently enrolled in any college or university in India; inter-college teams are permitted.",
+    "requirements": "Teams of 2-4 members, mandatory registration on Unstop, and successful qualification in the online MCQ round."
+  },
+  "unstop-a832cce1": {
+    "description": "CODE VARIANT — BUILD 01 is a 12-hour online frontend building competition where participants develop web-based solutions for real-world problems. The event tests adaptability by introducing a surprise challenge midway through the live build.",
+    "eligibility": "Individuals or teams of up to 4 members.",
+    "requirements": "Submit a problem and idea via Unstop by October 17, 2026, and participate in a 12-hour live build on October 24, 2026, including a final deployed website."
+  },
+  "unstop-47a86a07": {
+    "description": "An 8-hour beginner-friendly Build-a-Thon where participants turn ideas into working prototypes using AI-powered tools. The event is designed to help anyone, regardless of coding experience, explore rapid prototyping and AI development.",
+    "eligibility": "Open to everyone, including beginners, students, designers, developers, and innovators interested in AI.",
+    "requirements": "Teams of 2–4 members, registration on Unstop, and joining the official WhatsApp group."
+  },
+  "unstop-7caafd22": {
+    "description": "Colossus 3.O is a 24-hour national-level hackathon organized by Dr. Ambedkar Institute of Technology where student teams solve real-world problems across six domains. The event consists of an online screening round followed by an offline 24-hour finale.",
+    "eligibility": "Student teams participating at a national level.",
+    "requirements": "Online PPT submission (PDF), valid college ID, laptops, chargers, and extension boards."
+  },
+  "unstop-40041b1b": {
+    "description": "A hackathon featuring software and hardware tracks where participants build innovative solutions ranging from AI-powered platforms to robotics. Teams progress through idea screening, prototype building, and a final live demo to compete for a ₹1,20,000 prize pool.",
+    "eligibility": "Teams of up to 4 members.",
+    "requirements": "Original solutions built during the event with a mandatory working prototype."
+  },
+  "unstop-62baa7c6": {
+    "description": "This event invites college students to form teams and submit their ideas using an official PPT via Unstop. Registered teams will receive further instructions upon successful submission.",
+    "eligibility": "All college students.",
+    "requirements": "Teams of 2–4 members, Unstop registration with member details, and idea submission via official PPT."
+  },
+  "unstop-55204bc5": {
+    "description": "BlockHunt '26 is a beginner-friendly, escalating blockchain puzzle hunt featuring five hands-on stages like mining and smart contract cracking. The event lasts approximately three hours and tests various core blockchain concepts.",
+    "eligibility": "Open to all college students.",
+    "requirements": "Teams of 2 to 3 members; no prior blockchain knowledge required."
+  },
+  "unstop-2f944b97": {
+    "description": "SYNERGY 2026 is an 8-hour hardware simulation hackathon focused on redefining sustainable product design through electronics and mechanical virtual prototyping. Participants aim to build eco-conscious solutions using advanced simulation tools to minimize physical waste.",
+    "eligibility": "Undergraduate students (B.E./B.Tech, Technical Diploma, or any other UG degree) in teams of 2 to 4 members.",
+    "requirements": "A registration fee of Rs. 300 per team (post-selection), official College Photo ID, and mandatory 8-hour on-campus attendance."
+  },
+  "unstop-2ea9f610": {
+    "description": "An online competition focusing on Agentic AI, Full-Stack Product Engineering, and emerging technologies, offering various rewards and a prize pool.",
+    "eligibility": "Open to individuals and teams.",
+    "requirements": "Online participation and free registration."
+  },
+  "unstop-4f51719f": {
+    "description": "HackAaroh is an open-source sprint where participants make meaningful contributions to various projects to compete on a leaderboard. The top 20 participants can win Zomato gift cards based on the quality and impact of their work.",
+    "eligibility": "Open to developers across any tech stack.",
+    "requirements": "Connect GitHub, submit meaningful pull requests, and follow specific project guidelines."
+  },
+  "unstop-a01b1fc0": {
+    "description": "Tech Mafia is a team-based social deduction game that blends technical challenges like coding and AI prompting with strategic deception. Participants must complete tasks while identifying hidden saboteurs to advance to the final individual round.",
+    "eligibility": "Individual registration.",
+    "requirements": "Coding, debugging, AI prompting, logical reasoning, and teamwork skills."
+  },
+  "unstop-e2acb8e2": {
+    "description": "HERHACK 2026 is a 36-hour national-level hackathon for women innovators and developers to build solutions for real-world problems. The event will be held at the Echelon Institute of Technology in Faridabad, Haryana.",
+    "eligibility": "Participants aged 18 and above, organized into teams of 2–5 members.",
+    "requirements": "Original, track-relevant projects including a repository, documentation, and a project demonstration."
+  },
+  "unstop-d4c57831": {
+    "description": "FOSS FORGE 2.0 is a competitive open-source event where participants choose from a pool of real-world challenges such as bug bounties, CTFs, and tool building. Unlike traditional hackathons, it allows developers to select their own tracks based on their specific technical interests and skills.",
+    "eligibility": "Developers and tech enthusiasts interested in open-source contributions.",
+    "requirements": "Participation in a competitive online quiz covering Git, GitHub, and programming to determine leaderboard ranking."
+  },
+  "unstop-383fe191": {
+    "description": "The DataOps Innovation Hackathon 2026 is a virtual event focused on building intelligent, AI-driven solutions to solve real-world cybersecurity challenges. Participants are challenged to create tools that move beyond simple automation to provide contextual analysis and informed decision-making.",
+    "eligibility": "Students, developers, cybersecurity enthusiasts, researchers, and technology innovators.",
+    "requirements": "All security testing must be conducted within the designated sandboxed/lab environment with appropriate safety and human-approval controls."
+  },
+  "unstop-2d4c4a37": {
+    "description": "Craftcon 2K26 is a two-day event at Desh Bhagat University featuring an internal Smart India Hackathon and a competitive gaming tournament. The event focuses on fostering innovation, technology, and competitive skill sets.",
+    "eligibility": "Students from the same institution (for the hackathon) and registered gaming participants.",
+    "requirements": "Hackathon teams must have 1-6 members including at least one female; gamers must register and follow specific game rules."
+  },
+  "unstop-4a3b74bd": {
+    "description": "Procon Jr. is a school-level competitive programming contest inspired by the IOI that identifies coding talent through algorithmic challenges. Winners can earn bonus points for IIIT-Delhi admissions via JAC counselling.",
+    "eligibility": "Registered school students up to Class 12.",
+    "requirements": "Individual participation, use of the official contest platform, and a valid school ID for the on-site final round."
+  },
+  "unstop-2f23b673": {
+    "description": "Vihaan X is a 24-hour hardware hackathon organized by IEEE DTU that challenges participants to build functional, real-world prototypes in domains like IoT, AgriTech, and Sustainability. It provides an intensive environment for hands-on engineering, technical experimentation, and direct industry mentorship.",
+    "eligibility": "Students participating in teams of up to 4 members.",
+    "requirements": "Maximum of 4 participants per team; ability to design and develop a working hardware prototype within 24 hours."
+  },
+  "unstop-791991dc": {
+    "description": "The Arcticathon is a student-focused solo online hackathon where participants build a deployed, Arctic-themed website. It challenges developers to showcase creativity and technical skills by creating web apps, games, or interactive tools.",
+    "eligibility": "Students participating solo.",
+    "requirements": "Build a multi-page website using at least 5 components (including props, children, and nested components), implement a nested route, fetch data from an API, and log 3 hours via Hackatime."
+  },
+  "unstop-13a91ed2": {
+    "description": "AlgoSSTrike is a team-based competitive programming contest that tests algorithmic skills and coding speed through ICPC-style challenges. The competition progresses from an online qualifier to an offline final held at the Scaler School of Technology.",
+    "eligibility": "Teams of 3 participants.",
+    "requirements": "One laptop per team, proficiency in C, C++, Java, or Python, and mandatory OBS recording."
+  },
+  "unstop-da9ab5d4": {
+    "description": "An online hackathon held from October 5th to 6th featuring tracks in Agentic AI, Full-Stack Product Engineering, and Open Innovation. Participants can compete for internships, a 30,000 prize pool, and various digital credits.",
+    "eligibility": "Open to all interested participants.",
+    "requirements": "Teams of 1–4 members."
+  },
+  "unstop-f1b7f7b9": {
+    "description": "Hackosquad CTF is a 24-hour online Marvel-themed Capture The Flag competition where players must stop Doctor Doom's Doomsday countdown. The event features phased challenges designed to accommodate both beginners and experienced cybersecurity players.",
+    "eligibility": "School and college students, working professionals, and cybersecurity enthusiasts.",
+    "requirements": "No prior CTF experience needed."
+  },
+  "unstop-84c2087b": {
+    "description": "VibeX code 26 is a free, 12-hour online hackathon hosted by Admitiy on Discord on 15 November 2026. Participants will build projects to compete for a Winner’s Certificate.",
+    "eligibility": "Students, beginners, and experienced builders; solo or teams of up to 4 members.",
+    "requirements": "Register with name and email, build a project during the event, and submit a description, link, and demo by 9:00 PM IST."
+  },
+  "unstop-2d35b017": {
+    "description": "Space & Beyond – Innovation Ideathon 2026 is an idea-based challenge where participants propose creative solutions to real-world problems across themes like space exploration and smart technology. The competition involves a two-round process consisting of an initial PPT submission followed by a prototype presentation.",
+    "eligibility": "College students, participating individually or in teams of 2–4 members.",
+    "requirements": "Submit an 8–10 slide PPT by October 15, 2026, and develop a prototype (using tools like Figma) if shortlisted for the final round."
+  },
+  "unstop-f15f1249": {
+    "description": "Code Kernel '26 is an online national problem-solving competition that challenges students to decode, build, and prove practical solutions to real-world problems. The event focuses on technical depth and robustness rather than just pitching or prototyping.",
+    "eligibility": "Engineering students across India.",
+    "requirements": "Teams of 1 to 4 members; online participation."
+  },
+  "unstop-7e018b59": {
+    "description": "The Jammu Smart City Hackathon is a team-based innovation platform designed to develop practical, scalable solutions for urban challenges in Jammu. It offers a structured pathway from ideation and mentoring to the potential implementation of civic solutions.",
+    "eligibility": "Innovators, entrepreneurs, researchers, startups, NGOs, social enterprises, and community organizations.",
+    "requirements": "Team-based participation involving coding and problem-solving skills focused on specific urban themes or open innovation."
+  },
+  "unstop-6d8cf2b6": {
+    "description": "A challenge where participants test and fix real apps on the Mozark platform to prove their performance and reliability. The goal is to identify and resolve real bugs on actual devices.",
+    "eligibility": "College and university students in India and the US, aged 18+, of all skill levels.",
+    "requirements": "Register on Unstop and bring your own app/APK to test on the Mozark platform."
+  },
+  "unstop-88f27ddc": {
+    "description": "Gronex Engineering Cup #1 is a free, two-hour online contest where students and engineers solve real-world software engineering problems in a browser-based workspace. Participants tackle machine coding, low-level design, and production debugging challenges against real test suites.",
+    "eligibility": "Students and working engineers.",
+    "requirements": "Register on Unstop and Gronex; ability to code in Java, Python, Node.js, or C++."
+  },
+  "unstop-f92aebdd": {
+    "description": "Teams compete to uncover non-obvious, evidence-backed financial insights based on a specific company, industry, or financial question. The event consists of an online planning round followed by online finals on October 25.",
+    "eligibility": "Open to participating teams with no restrictions on size, college, or specialization.",
+    "requirements": "Use publicly available information and any chosen models, tools, or technology."
+  },
+  "unstop-c44da4eb": {
+    "description": "Globathon 2026 is Globatech Group's flagship hackathon where participants tackle real-world problems in FinTech and Energy. The event offers a ₹50,000 prize pool and potential career opportunities through PPIs and PPOs.",
+    "eligibility": "Currently enrolled undergraduate or postgraduate students; inter-specialization teams are allowed.",
+    "requirements": "Teams of 2–4 members with a designated leader, registration on Unstop, and in-person attendance in Pune for shortlisted finalists."
+  },
+  "unstop-9e037e36": {
+    "description": "A three-round online hackathon featuring tracks in Agentic AI, Full-Stack Product Engineering, and Open Innovation. Participants can compete for a 30,000 Rs prize pool, internships, and various AI credits.",
+    "eligibility": "Teams of 1–4 members.",
+    "requirements": "Complete three online rounds within the specified tracks."
+  },
+  "unstop-4ad08bca": {
+    "description": "HackerWrath 3.0 is a 24-hour offline hackathon held at GNDU, Amritsar, where teams develop solutions to problem statements revealed at the event. The competition includes an elimination round followed by a final presentation for shortlisted teams.",
+    "eligibility": "B.Tech students in teams of 3–5 members (inter-college and inter-branch teams allowed).",
+    "requirements": "GitHub repository, project presentation/PPT, and a working prototype."
+  },
+  "unstop-30159fdf": {
+    "description": "The Malla Reddy Talentio Online Coding Challenge 2026 is an online competition designed to enhance participants' programming, problem-solving, and logical thinking skills through practical coding challenges.",
+    "eligibility": "College students, freshers, and coding enthusiasts.",
+    "requirements": "Basic programming knowledge, a computer, and a stable internet connection."
+  },
+  "unstop-aa7ba0a2": {
+    "description": "PINAKA CTF 2026 is a national-level cybersecurity Capture The Flag competition organized by NFSU Chennai featuring challenges in digital forensics, web exploitation, and more. The event consists of an online qualification round followed by an offline Grand Finale at the NFSU Chennai Campus.",
+    "eligibility": "Undergraduate and postgraduate students, cybersecurity enthusiasts, researchers, and security professionals across India.",
+    "requirements": "Team registration with a fee of 400₹ per team."
+  },
+  "unstop-f294fb67": {
+    "description": "As part of the J&K Tech & Innovation Surge 2026, this event invites participants to develop technological solutions for Viksit Bharat @ 2047 across themes like AI, DeepTech, and climate resilience.",
+    "eligibility": "UG, PG, PhD students, startups, and corporate teams.",
+    "requirements": "Teams of 3–4 members; must pass shortlisting and pay a ₹300 registration fee per participant."
+  },
+  "unstop-ca51e877": {
+    "description": "Commit to Change is an open innovation hackathon that allows students to showcase and demonstrate solutions to real-world challenges across various domains. Participants can present entirely new concepts or existing projects, such as startup prototypes or SIH projects, to demonstrate their impact.",
+    "eligibility": "College students in teams of 2–4 members.",
+    "requirements": "Join the official WhatsApp group and demonstrate clear ownership, technical understanding, and real-world applicability of the project."
+  },
+  "unstop-cf700aa8": {
+    "description": "SPIRIT 3.0 - Buildathon is a hybrid software development hackathon organized by DSMNRU, Lucknow, focusing on themes like Assistive Technology, Fintech, and Open Innovation. Participants will develop and present technical solutions through a structured buildathon experience.",
+    "eligibility": "Teams interested in software development.",
+    "requirements": "Submit an 8–10 slide PPT or PDF presenting the proposed solution and technology stack for the initial screening round."
+  },
+  "unstop-16388659": {
+    "description": "Ghost Protocol CTF 2.0 is a national-level cybersecurity competition featuring an online qualification round followed by an offline grand finale at NIET, Greater Noida. It challenges students with real-world cybersecurity tasks across various domains, including ethical hacking, forensics, and cryptography.",
+    "eligibility": "Students (B.Tech, M.Tech, BCA, MCA, B.Sc., or M.Sc.) from recognized Indian colleges/universities; teams of 1-3 members.",
+    "requirements": "Stable internet, modern OS with a web browser, personal laptop with charger, valid photo ID, and registration confirmation."
+  },
+  "unstop-7d5c91b2": {
+    "description": "A national robotics competition by Techfest, IIT Bombay, where student teams design and program a scaled autonomous vehicle to navigate a miniature urban environment. The challenge tests navigation through lanes, intersections, and dynamic traffic across multiple progressive rounds.",
+    "eligibility": "Undergraduate and postgraduate students from recognized institutions, organized in teams of 3-5 members.",
+    "requirements": "A scaled autonomous vehicle, a 3-5 minute demonstration video, and a 1-2 page Technical Design Document (TDD)."
+  },
+  "unstop-fba6b8af": {
+    "description": "The Devforge is a 24-hour coding marathon where teams of 2–4 developers build innovative solutions to real-world problems. It is a high-pressure test of creativity, technical skill, and teamwork to turn concepts into working prototypes.",
+    "eligibility": "College students across India; inter-college and inter-specialization teams allowed; team size 2–4 members.",
+    "requirements": "Bring own laptops/chargers, submit a Round 1 technical proposal, and present a working prototype."
+  },
+  "unstop-f3ab7157": {
+    "description": "Vihaan X is North India's largest student-run hackathon featuring an intense 24-hour software track to build impactful digital solutions. Participants move through structured phases of coding, building, and debugging to turn ideas into fully functional applications.",
+    "eligibility": "Students and ambitious builders interested in software development.",
+    "requirements": "Teams of maximum 4 participants."
+  },
+  "unstop-0bb75059": {
+    "description": "Autopilot is a 6-hour Agenthon where participants build autonomous AI agents to solve a mystery task revealed on the day of the event. The agents are evaluated by an automated judging system and ranked on a live leaderboard.",
+    "eligibility": "All college students",
+    "requirements": "Teams of 1-3 participants"
+  },
+  "unstop-ef77f43d": {
+    "description": "Zero Day Apocalypse is a 4-hour AI challenge where participants use creative prompting to make LLMs behave contrary to their instructions. The event features multiple levels of increasing difficulty on a dedicated platform with automated scoring and a leaderboard.",
+    "eligibility": "Open to all college students (team size: 1-3).",
+    "requirements": "Curiosity, creativity, and a willingness to experiment with prompts."
+  },
+  "unstop-b8acfa38": {
+    "description": "Devlympics is a 24-hour hackathon where participants build projects from scratch based on a theme revealed at the start. It challenges developers to adapt to unexpected constraints and creative twists throughout the event.",
+    "eligibility": "Open to all college students.",
+    "requirements": "Teams of 1-3 members and a laptop."
+  },
+  "unstop-74932073": {
+    "description": "A drone soccer competition where teams pilot custom-built, caged drones through an obstacle-filled arena to score points by flying through a circular goal ring. Matches are conducted as timed sprints focusing on agility, defense, and scoring precision.",
+    "eligibility": "Teams of 2 to 5 members; cross-college teams are allowed.",
+    "requirements": "Custom-built or configured drones with protective cages (no standard RTF models) and the use of only one main drone model."
+  },
+  "unstop-193b3808": {
+    "description": "A two-round drone competition where teams navigate through rings and obstacles to complete a payload delivery task. Participants must fly custom-built drones to score points through precision maneuvering and QR code identification.",
+    "eligibility": "Teams of 2 to 6 members; inter-college teams are permitted.",
+    "requirements": "A custom-built drone (no RTF models) equipped with an onboard camera for QR scanning."
+  },
+  "unstop-4884c6bb": {
+    "description": "This two-round competition challenges participants to build a stock portfolio based on financial analysis and subsequently develop a machine learning model to predict the future prices of those selected stocks.",
+    "eligibility": "UG and PG college students; teams of up to 5 members.",
+    "requirements": "Team formation, portfolio construction with financial justification, and machine learning model development."
+  },
+  "unstop-9f4c6acb": {
+    "description": "Techkriti Grand Prix ‘27 is an RC car competition where teams build their own vehicles from scratch to test their engineering, design, and coding skills. Participants will compete on a challenging track where precision, control, and strategy are essential for victory.",
+    "eligibility": "Students (inter-college teams allowed, maximum 6 members per team).",
+    "requirements": "Custom-built Nitro or Electric RC car, valid student ID, and all necessary supplies such as fuel and batteries."
+  },
+  "unstop-51f62f91": {
+    "description": "This flagship Techkriti event challenges participants to design, build, and program an autonomous robot from scratch to perform specific tasks. Robots are judged on their precision, fabrication, and the intelligent application of sensors and coding.",
+    "eligibility": "Teams of up to 6 students, including inter-college teams.",
+    "requirements": "Build an autonomous robot from scratch capable of performing tasks using sensors and code."
+  },
+  "unstop-31c3b176": {
+    "description": "Design and build a manually controlled robot capable of precisely gripping various shapes and inserting them into corresponding grooves on a cubic block.",
+    "eligibility": "Teams of 2 to 6 students, including inter-college teams.",
+    "requirements": "A custom-built robot with a precise gripping mechanism and a stable wired or wireless control system."
+  },
+  "unstop-5b476d2a": {
+    "description": "Craft N Code is a state-level hackathon organized by Jadavpur University where students showcase innovation and coding skills to qualify for the national round. It provides a platform for students to develop technology-driven solutions for real-world problems.",
+    "eligibility": "Students studying in colleges located within West Bengal.",
+    "requirements": "Develop and present a technical solution in tracks such as HealthTech, EdTech, Cybersecurity, Mobility, AgriTech, or Open Innovation."
+  },
+  "unstop-5167aac1": {
+    "description": "Prompt Battle is a fast-paced AI-powered development and prompt-engineering competition where participants build functional solutions using Generative AI tools. The event features surprise hurdles and concludes with a live showcase and judge Q&A.",
+    "eligibility": "Individuals or teams of 2–4 members.",
+    "requirements": "₹400 registration fee per team, personal laptops, and necessary AI subscriptions or API access."
+  },
+  "unstop-296e27f1": {
+    "description": "Triathlon is a three-round interconnected technical competition featuring coding quizzes, PC building challenges, and cybersecurity puzzles. Performance in each round provides resources or hints for the subsequent round, rewarding consistent skill across all three disciplines.",
+    "eligibility": "Teams of 2–3 members.",
+    "requirements": "Knowledge of programming, computer science, PC hardware, and cybersecurity."
+  },
+  "unstop-12d6a88e": {
+    "description": "Zero Hour is an intense, 3-hour hackathon that tests coding, adaptability, and teamwork through surprise challenges. Teams must build a technical solution while navigating unexpected 'Gauntlets' to see if they can survive the clock.",
+    "eligibility": "Teams of exactly 4 members.",
+    "requirements": "Build a technical solution within 3 hours and ensure at least 3 different members participate in the timed Gauntlet challenges."
+  },
+  "unstop-87289137": {
+    "description": "RESPAWN is a 2D game jam where teams build a themed game during a 12-hour online prototyping phase. Shortlisted teams then move to an offline live pitching and showcase event to present their final playable games to a panel of judges.",
+    "eligibility": "Teams of 3–4 members.",
+    "requirements": "Develop a 2D game based on a specific theme, submit three progress videos at 4-hour intervals, and attend the offline live pitching session."
+  },
+  "unstop-a4b609f4": {
+    "description": "NYPO 2026 is a national-level technology competition designed to test the logic, problem-solving, and AI-building skills of Indian students. Participants progress through three stages: coding aptitude, a video round, and a hands-on 'vibecoding' session.",
+    "eligibility": "Students from Classes 8 to 12 across India.",
+    "requirements": "Registration fee of ₹499; no prior coding knowledge required."
+  },
+  "unstop-eca371f5": {
+    "description": "Dohyo is a head-to-head robotic pushing competition where two remotely controlled robots battle to push their opponent out of a circular arena or immobilize them. The event tests power, traction, and strategy through intense knockout-style matches.",
+    "eligibility": "Open to all students, including inter-college participants.",
+    "requirements": "Teams of 3–5 members must provide a wireless-controlled robot (max 8kg, 30x40x30 cm, 48V DC) equipped with a mandatory emergency stop switch."
+  },
+  "unstop-bf2220c5": {
+    "description": "Takeshi's Bots is a fully autonomous maze-navigation challenge where robots must independently navigate a 3x3m maze to reach a central finish. The competition tests accuracy, sensing, and path planning through three timed attempts.",
+    "eligibility": "Open to all students, including inter-college participants.",
+    "requirements": "Teams of 3-5 participants with a fully autonomous robot (max 20x20x15 cm, 48V DC) including an 8x8 cm mounting area for monitoring."
+  },
+  "unstop-339c978e": {
+    "description": "Overdrive is a high-speed wireless rover racing challenge where teams compete to navigate a Melbourne F1-style track in the shortest time. Participants must balance aggressive driving with precision to conquer obstacles like ramps, rollers, and gravel pits.",
+    "eligibility": "Open to all students, including inter-college participants.",
+    "requirements": "Teams of 3–5 members with a wireless-controlled rover (max 2kg, 8x8x8 inches, 48V DC) and a front-mounted white LED."
+  },
+  "unstop-6ba8fa90": {
+    "description": "TRIVORA 2026 is a national-level, 24-hour offline hackathon focused on building intelligent and scalable solutions using Generative AI and Cloud Computing. Participants will tackle unique problem statements to develop real-world working prototypes.",
+    "eligibility": "Open to UG and PG students from all academic disciplines; inter-college and inter-departmental teams are allowed.",
+    "requirements": "Teams of 1–4 members, a registration fee of Rs 1000, and submission of a working prototype, presentation deck, and source code."
+  },
+  "unstop-15a59617": {
+    "description": "Teams will design, build, and pilot custom drones through a timed obstacle course to demonstrate speed, maneuverability, and precision. The course will be revealed at the venue, requiring participants to adapt their piloting on the spot.",
+    "eligibility": "Teams of 2 participants.",
+    "requirements": "A custom, airworthy drone meeting specified weight and size limits, along with technical preparation for safe flight."
+  },
+  "unstop-18f03a27": {
+    "description": "Junior Robo Sumo is a head-to-head robotics challenge where teams pilot custom-built, wirelessly controlled robots to push opponents out of a sumo ring. Success depends on robot control, strategy, and quick decision-making under pressure.",
+    "eligibility": "Teams of 2 participants.",
+    "requirements": "Custom wireless robots (max 350x350 mm, 3 kg, 12.6 V) and a ₹300 registration fee per team."
+  },
+  "unstop-e0c2ca5f": {
+    "description": "Junior Ideathon is an opportunity for school students to identify pressing problems and develop innovative, scalable solutions. Participants present their ideas via a pitch deck to a jury for a chance to win prizes and incubation support.",
+    "eligibility": "School students (teams of 2)",
+    "requirements": "Valid School ID, PPT/PDF pitch deck, and ₹300 registration fee per team"
+  },
+  "unstop-3949a69a": {
+    "description": "Junior Robo Soccer at TechTrix'26 is a robotics competition where teams use wirelessly controlled robots to compete in football-style matches. The objective is to maneuver a ball into the opponent's goal while adhering to specific technical and gameplay constraints.",
+    "eligibility": "Teams of 2 participants.",
+    "requirements": "A custom-built wireless robot (max 350x350mm, 3kg, 12V DC), a controller, necessary spares, and a ₹300 registration fee per team."
+  },
+  "unstop-093ce92a": {
+    "description": "Junior Robo Race at TechTrix'26 is an obstacle-based competition where teams navigate a manually controlled, wireless robot through various challenges like ramps, tunnels, and bridges. The objective is to complete the track in the shortest possible time while demonstrating precision and adaptability.",
+    "eligibility": "Teams of 2 participants.",
+    "requirements": "Custom-built wireless robot (max 350x350mm, 5kg, 24V), ₹300 registration fee per team, and mandatory technical inspection."
+  },
+  "unstop-412909f4": {
+    "description": "The Senior Robo Race challenges teams to design and build a custom, manually controlled wireless robot to navigate an obstacle-filled track in the shortest time. Teams are evaluated based on speed, agility, and strategic obstacle handling during a time-trial competition.",
+    "eligibility": "Students from any academic institution; maximum of 2 members per team.",
+    "requirements": "Custom-built wireless robot (max 350x350mm, 3kg), valid institutional ID, and a ₹300 registration fee per team."
+  },
+  "unstop-80b1a836": {
+    "description": "Senior Robo Sumo is a robotics challenge at TechTrix'26 where teams use RC-controlled robots to push opponents out of a sumo-style arena. The competition follows a single-elimination knockout format to test robot control, design, and strategy.",
+    "eligibility": "Undergraduate and postgraduate students in teams of two.",
+    "requirements": "An RC-controlled robot (max 350x350mm, 3kg), valid institutional ID, and a ₹300 registration fee per team."
+  },
+  "unstop-aa84f72e": {
+    "description": "TechTrix'26's Poster Exhibition provides a platform for grassroots innovators to present posters and paintings addressing real-world software and hardware problems. Participants will present their technical concepts and practical applications to a jury for evaluation.",
+    "eligibility": "Undergraduate and postgraduate students in teams of two.",
+    "requirements": "A1 portrait poster including title, methodology, and results, valid college ID, and a team of two participants."
+  },
+  "unstop-433a7e8c": {
+    "description": "This interactive session helps participants improve their verbal expression, professional etiquette, and leadership presence to communicate more confidently. It focuses on building skills for interviews, presentations, and effective interpersonal communication.",
+    "eligibility": "Students interested in improving communication skills, confidence, and professional etiquette.",
+    "requirements": "Maintain professional conduct, respect others, and actively engage in the session."
+  },
+  "unstop-d5d27b72": {
+    "description": "This session explores the evolution of AI from simple response generation to autonomous systems capable of taking action. Participants will learn about the structure, reasoning, and practical deployment of agent-based AI applications.",
+    "eligibility": "Individuals interested in AI, data science, or emerging technologies.",
+    "requirements": "Virtual session access."
+  },
+  "unstop-88e7cf13": {
+    "description": "This session explores the world of system programming, focusing on low-level software, hardware interaction, and memory management. It offers insights into systems development careers and a deeper side of software engineering.",
+    "eligibility": "Not specified",
+    "requirements": "Not specified"
+  },
+  "unstop-91f3cdb8": {
+    "description": "This virtual session helps engineering students develop industry-relevant skills to bridge the gap between college and a professional software career. Participants will learn about technical fundamentals, practical problem-solving, and professional communication.",
+    "eligibility": "Engineering students preparing for placements or their first software role.",
+    "requirements": "Virtual attendance for the session on 20th December."
+  },
+  "unstop-ef3ca066": {
+    "description": "This virtual session explores how generative AI is reshaping software development and how engineers can effectively collaborate with intelligent tools. It focuses on the evolving role of human creativity, reasoning, and fundamental skills in an AI-driven landscape.",
+    "eligibility": "Students, aspiring developers, or early-career engineers.",
+    "requirements": "None specified."
+  },
+  "unstop-a7dd88f5": {
+    "description": "This session helps students transition from college learning to technical interview readiness by covering programming fundamentals, problem-solving, and communication skills. It is designed to prepare candidates for their first professional job interviews.",
+    "eligibility": "Students or recent graduates preparing for technical roles.",
+    "requirements": "Basic knowledge of programming fundamentals."
+  },
+  "unstop-99de3dde": {
+    "description": "This virtual session helps new software developers transition from college to professional life by covering codebases, team culture, and career foundations. It provides insights into company expectations and how to manage responsibilities effectively.",
+    "eligibility": "Engineering students, fresh graduates, and aspiring developers.",
+    "requirements": "None specified."
+  },
+  "unstop-851e0848": {
+    "description": "This session explores how intelligent technologies and automation are reshaping modern professional environments and workflows. It focuses on emerging opportunities and the evolving skill sets required to navigate a changing workplace.",
+    "eligibility": "Not specified",
+    "requirements": "Not specified"
+  },
+  "unstop-1171493d": {
+    "description": "A high-energy technical challenge where teams design, build, and pilot custom drones through a timed obstacle course. Participants aim to achieve the best adjusted time by demonstrating speed, maneuverability, and precision.",
+    "eligibility": "Teams of 2 participants.",
+    "requirements": "Custom drone (max 450mm frame, ~1.5kg weight) and a ₹600 registration fee per team."
+  },
+  "unstop-ba543523": {
+    "description": "Robo Soccer is a high-energy robotics football challenge where teams compete using custom-built, wirelessly controlled robots to score goals in a knockout tournament. Participants must balance speed, control, and defensive strategy to outmaneuver opponents in a fast-paced arena.",
+    "eligibility": "Undergraduate or postgraduate students forming teams of two.",
+    "requirements": "Custom-built wireless robot (max 350x350mm, 3kg), controller, spare parts, and valid college ID."
+  },
+  "unstop-9772004d": {
+    "description": "Valorant – Battle Zone is a competitive esports tournament at TechTrix'26 that challenges teams to showcase strategic decision-making and teamwork. Participants compete in an intense multiplayer battle for a prize pool of ₹15,000.",
+    "eligibility": "Teams of 5 registered participants.",
+    "requirements": "Bring your own laptop/device and report before your scheduled match."
   }
 }
