@@ -1,4 +1,4 @@
-"""CampusEvents app. Run it from the repo folder:  python app_template/app.py
+"""HackFindr app. Run it from the repo folder:  python app_template/app.py
 
 Three tabs: the Events page (map + list + details + poster upload),
 ask Gemma 4 about a picture, and an agent that can use the event tools.
@@ -25,7 +25,7 @@ from harness.tools import filter_events
 SYSTEM_RULE = ("You help students find events. Use search_events, then get_event_details if needed. "
                "List titles, cities, distances, dates and register links. Keep answers short.")
 
-TITLE = "CampusEvents"
+TITLE = "HackFindr"
 DEFAULT_CITY = "Raipur"
 DEFAULT_RADIUS = 300  # km shown when the app opens
 RADIUS_CHOICES = [(f"Within {km} km", km) for km in (50, 100, 300, 500, 1000, 2000)]

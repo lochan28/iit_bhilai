@@ -1,9 +1,9 @@
 ---
-name: campus-events
+name: hackfindr
 description: Find upcoming student hackathons, ideathons, webinars, workshops, competitions and conferences near a city, filtered by distance, and show their details and register links.
 license: MIT
 ---
-# CampusEvents agent skill
+# HackFindr agent skill
 
 Tools (in `harness/tools.py`):
 - `search_events(city, radius_km=100, mode="any", event_type="any")`: offline events near the city, sorted by distance, plus online events.

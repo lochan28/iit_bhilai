@@ -124,7 +124,7 @@ def save_note(text: str):
     return "Saved the note."
 
 
-# ---------- CampusEvents: search the saved events.json ----------
+# ---------- HackFindr: search the saved events.json ----------
 # These tools only READ events.json. Looking up a city name may use the geocoder (cached in geocache.json).
 
 import sys  # noqa: E402

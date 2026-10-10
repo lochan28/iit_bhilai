@@ -28,7 +28,7 @@ UNSTOP_CATEGORIES = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 1
                      "conferences": ("conference", 1), "competitions": ("competition", 2)}
 DEVPOST_URL = "https://devpost.com/api/hackathons"
 DEVPOST_PAGES = 5          # Devpost sends 9 events per page
-HEADERS = {"User-Agent": "Mozilla/5.0 (campus-events student project)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (hackfindr student project)"}
 
 
 # ---------- small helpers ----------
@@ -87,7 +87,7 @@ def geocode(place):
         if wait > 0:
             time.sleep(wait)
         _last_geocode = time.time()
-        loc = Nominatim(user_agent="campus-events").geocode(place, timeout=10)
+        loc = Nominatim(user_agent="hackfindr").geocode(place, timeout=10)
         _geocache[key] = [loc.latitude, loc.longitude] if loc else None
     except Exception as e:
         print("geocode failed for", place, "->", e)
