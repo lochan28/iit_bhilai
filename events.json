@@ -270,24 +270,6 @@
     "lon": 79.061104
   },
   {
-    "id": "unstop-33bc4296",
-    "title": "Indiathon – Powered by E-Cell IIIT Bhubaneswar , Co-powered by LearnApart",
-    "organiser": "International Institute of Information Technology, Bhubaneswar",
-    "type": "hackathon",
-    "mode": "online",
-    "city": "",
-    "start": "2026-10-04T00:00:00+05:30",
-    "end": "2026-10-19T00:00:00+05:30",
-    "description": "",
-    "eligibility": "",
-    "requirements": "Team size 1-4",
-    "register_url": "https://unstop.com/hackathons/indiathon-powered-by-e-cell-iiit-bhubaneswar-co-powered-by-learnapart-international-institute-of-information--1765224",
-    "poster_url": "https://d8it4huxumps7.cloudfront.net/uploads/images/150x150/uploadedManual-6ac8e58c9d93b_logo_2.png",
-    "source": "unstop",
-    "lat": null,
-    "lon": null
-  },
-  {
     "id": "unstop-89d3134f",
     "title": "Line-O-Mania | A Line Follower Competition",
     "organiser": "Indian Institute of Information Technology (IIIT), Nagpur",
@@ -412,6 +394,24 @@
     "source": "unstop",
     "lat": 18.7337107,
     "lon": 73.6728593
+  },
+  {
+    "id": "unstop-33bc4296",
+    "title": "Indiathon – Powered by E-Cell IIIT Bhubaneswar , Co-powered by LearnApart",
+    "organiser": "International Institute of Information Technology, Bhubaneswar",
+    "type": "hackathon",
+    "mode": "online",
+    "city": "",
+    "start": "2026-10-04T00:00:00+05:30",
+    "end": "2026-10-19T00:00:00+05:30",
+    "description": "",
+    "eligibility": "",
+    "requirements": "Team size 1-4",
+    "register_url": "https://unstop.com/hackathons/indiathon-powered-by-e-cell-iiit-bhubaneswar-co-powered-by-learnapart-international-institute-of-information--1765224",
+    "poster_url": "https://d8it4huxumps7.cloudfront.net/uploads/images/150x150/uploadedManual-6ac8e58c9d93b_logo_2.png",
+    "source": "unstop",
+    "lat": null,
+    "lon": null
   },
   {
     "id": "unstop-66ae5545",
