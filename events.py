@@ -8,6 +8,7 @@ import math
 import os
 import re
 import time
+from datetime import date, datetime
 
 import requests
 
@@ -173,6 +174,17 @@ def unstop_events(items, event_type):
 
 
 # ---------- Devpost ----------
+def devpost_end(dates):
+    """'Aug 31 - Oct 23, 2026' -> '2026-10-23'. Returns '' if the text looks different."""
+    match = re.search(r"([A-Z][a-z]{2}) (\d{1,2}), (\d{4})\s*$", dates or "")
+    if not match:
+        return ""
+    try:
+        return datetime.strptime(" ".join(match.groups()), "%b %d %Y").date().isoformat()
+    except ValueError:
+        return ""
+
+
 def fetch_devpost():
     items = []
     for page in range(1, DEVPOST_PAGES + 1):
@@ -196,7 +208,7 @@ def fetch_devpost():
             "mode": mode,
             "city": loc if mode == "offline" else "",
             "start": it.get("submission_period_dates", ""),
-            "end": "",
+            "end": devpost_end(it.get("submission_period_dates", "")),
             "description": f"Themes: {themes}" if themes else "",
             "eligibility": "",
             "requirements": "",
@@ -210,20 +222,33 @@ def fetch_devpost():
 
 
 # ---------- Gemma summaries of Unstop HTML (cached) ----------
+def short_text(text, limit=220):
+    """First sentence or two of a long text, cut at a word boundary."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] + "…"
+
+
 def summarize_details(events):
     """Ask Gemma to turn the first N Unstop 'details' HTML into short fields."""
     cache = load_json(SUMMARY_CACHE_FILE, {})
     done = 0
+    from bs4 import BeautifulSoup
     for ev in events:
         html = ev.pop("details_html", "")
-        if not html or done >= GEMMA_SUMMARY_LIMIT:
+        if not html:
+            continue
+        text = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
+        if not ev["description"]:      # until Gemma summarizes it, show the start of the real text
+            ev["description"] = short_text(text)
+        if done >= GEMMA_SUMMARY_LIMIT:
             continue
         done += 1
         if ev["id"] not in cache:
             try:
-                from bs4 import BeautifulSoup
                 import gemma_client
-                text = BeautifulSoup(html, "html.parser").get_text(" ", strip=True)[:4000]
+                text = text[:4000]
                 prompt = ("From this event description, return ONLY JSON with keys "
                           '"description" (1-2 sentences), "eligibility" (short), '
                           '"requirements" (short).\n\n' + text)
@@ -243,9 +268,20 @@ def summarize_details(events):
 # ---------- main entry points ----------
 def add_coords(events):
     for ev in events:
-        if ev.get("lat") is None:
-            ev["lat"], ev["lon"] = geocode(ev["city"]) if ev["mode"] == "offline" else (None, None)
+        if ev.get("lat") is None and ev["mode"] == "offline":
+            ev["lat"], ev["lon"] = geocode(ev["city"])
+            if ev["lat"] is None and "," in ev["city"]:   # "Some Hall, Bengaluru" -> try "Bengaluru"
+                ev["lat"], ev["lon"] = geocode(ev["city"].rsplit(",", 1)[1])
+        elif ev["mode"] != "offline":
+            ev["lat"], ev["lon"] = None, None
     return events
+
+
+def is_over(ev):
+    """True if the event (or its registration) has already ended."""
+    today = date.today().isoformat()
+    ends = [str(ev.get(k) or "")[:10] for k in ("event_end", "end")]
+    return any(e and e < today for e in ends)
 
 
 def refresh_events():
@@ -261,6 +297,10 @@ def refresh_events():
         print("Live fetch failed, using saved events.json")
         return load_events()
     events = list({ev["id"]: ev for ev in events}.values())   # same event in two categories -> keep one
+    for ev in events:                # saved Devpost events from older runs may lack the end date
+        if ev["source"] == "devpost" and not ev.get("end"):
+            ev["end"] = devpost_end(ev.get("start", ""))
+    events = [ev for ev in events if not is_over(ev)]
     events = add_coords(summarize_details(events))
     # keep events added from posters across refreshes
     events += [e for e in load_events() if e.get("source") == "poster"]

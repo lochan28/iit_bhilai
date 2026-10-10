@@ -168,7 +168,7 @@ def thumb_html(ev, cls="ce-thumb"):
 
 
 def card_html(ev):
-    summary = ev.get("description") or ev.get("requirements")
+    summary = ev.get("description")
     summary_html = f'<div class="ce-summary"><span>✦</span> {esc(summary)}</div>' if summary else ""
     return (f'{thumb_html(ev)}<div class="ce-card-body"><div class="ce-card-title">{esc(ev["title"])}</div>'
             f'<div class="ce-meta">{meta_line(ev)}</div>{summary_html}'

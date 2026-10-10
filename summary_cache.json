@@ -513,5 +513,20 @@
     "description": "Valorant – Battle Zone is a competitive esports tournament at TechTrix'26 that challenges teams to showcase strategic decision-making and teamwork. Participants compete in an intense multiplayer battle for a prize pool of ₹15,000.",
     "eligibility": "Teams of 5 registered participants.",
     "requirements": "Bring your own laptop/device and report before your scheduled match."
+  },
+  "unstop-b039b3c7": {
+    "description": "This online hackathon, held from October 5th to 6th, features tracks in Agentic AI, Full-Stack Product Engineering, and Open Innovation. Participants can compete for internships, a 30,000 prize pool, and various digital rewards and credits.",
+    "eligibility": "Open to participants interested in the specified hackathon tracks.",
+    "requirements": "Form a team of 1–4 members."
+  },
+  "unstop-277b5a04": {
+    "description": "A two-round coding competition featuring debugging and problem-solving challenges held on October 13, 2026. Participants will solve questions of varying difficulty levels to be evaluated on speed, accuracy, and attempts.",
+    "eligibility": "Not explicitly specified",
+    "requirements": "Proficiency in Java, C, Go, or Python and strict adherence to rules against using AI or external assistance."
+  },
+  "unstop-c78cb56e": {
+    "description": "THREWS ODYSSEY 2026 is an online research and innovation hackathon where participants build practical technology-based solutions for real-world problems. It features multiple tracks ranging from Artificial Intelligence to Web3 and Open Innovation.",
+    "eligibility": "Open to college students, freshers, professionals, researchers, and independent developers, participating individually or in teams of up to two.",
+    "requirements": "Submissions must include a project name, problem statement, solution description, tech stack, source code, and a working prototype or demonstration."
   }
 }
