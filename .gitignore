@@ -1,0 +1,3 @@
+.env
+__pycache__/
+campus_events/summary_cache.json
