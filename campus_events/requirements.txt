@@ -1,8 +1,0 @@
-gradio
-google-genai
-python-dotenv
-requests
-geopy
-folium
-beautifulsoup4
-pillow
