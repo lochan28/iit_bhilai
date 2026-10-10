@@ -332,7 +332,8 @@ CSS = """
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 body, gradio-app, .gradio-container { background: #141414 !important; color: #f2f2f2; }
-.gradio-container { max-width: 1280px !important; padding: 8px 16px !important; }
+.gradio-container { max-width: 1280px !important; margin: 0 auto !important; padding: 8px 16px !important; }
+.gradio-container > .main, .gradio-container .wrap.contain { margin: 0 auto !important; width: 100% !important; }
 footer { display: none !important; }
 
 /* top bar */
