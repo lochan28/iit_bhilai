@@ -683,5 +683,10 @@
     "description": "The 1st International Mechanical Youth Summit offers B.Tech. students a platform to explore advanced technical tracks like robotics, automobile engineering, and additive manufacturing. Participants can gain valuable industry mentorship, networking opportunities, and the chance to publish research in Scopus-indexed journals.",
     "eligibility": "B.Tech. students",
     "requirements": "Submit a one-page abstract of a B.Tech. project or technical paper via email by November 15, 2026."
+  },
+  "unstop-e9439f54": {
+    "description": "Startup Confluence 2.0 is a two-day event that provides a platform for students to pitch innovative ideas to investors and industry experts. It offers unique opportunities for networking, learning about entrepreneurship, and accessing incubation support at the United Incubation Hub.",
+    "eligibility": "Students from all years and disciplines, as well as registered startups and companies.",
+    "requirements": "An innovative startup idea (for students) or an existing business (for companies); prize winners must agree to form a company and undergo incubation at UIH."
   }
 }
