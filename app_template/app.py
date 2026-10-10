@@ -31,7 +31,7 @@ DEFAULT_RADIUS = 300  # km shown when the app opens
 RADIUS_CHOICES = [(f"Within {km} km", km) for km in (50, 100, 300, 500, 1000, 2000)]
 CHIPS = ["All", "Hackathons", "Workshops", "Free", "This week", "Open to 1st year"]
 MAX_CARDS = 30        # cards shown in the list (more makes the page slow)
-PURPLE, GREEN = "#5b4fd6", "#1fa37a"
+PURPLE, GREEN, BLUSH = "#a597f2", "#7fd6b5", "#f7a8bc"  # pins: hackathon, workshop, "you are here"
 SOURCE_NAMES = {"unstop": "Unstop", "devpost": "Devpost", "poster": "Poster", "sample": "Sample"}
 
 
@@ -146,30 +146,39 @@ def meta_line(ev):
         parts.append(f"{ev['distance_km']} km")
     if event_date(ev):
         parts.append(nice_date(event_date(ev)))
+    line = " · ".join(esc(p) for p in parts)
     left = days_left(ev)
     if left is not None and left >= 0:
-        parts.append("closes today" if left == 0 else f"closes in {left} day{'s' if left != 1 else ''}")
-    return " · ".join(esc(p) for p in parts)
+        closes = "closes today" if left == 0 else f"closes in {left} day{'s' if left != 1 else ''}"
+        line += f' · <span class="ce-closes">{closes}</span>'
+    return line
+
+
+def tint(ev):
+    """Pastel colour for an event: lilac for hackathons, mint for workshops, peach for the rest."""
+    kind = ev.get("type")
+    return "lilac" if kind in ("hackathon", "ideathon") else "mint" if kind in ("workshop", "webinar") else "peach"
 
 
 def tags_html(ev, with_type=False):
-    tags = [SOURCE_NAMES.get(ev.get("source"), ev.get("source", ""))]
+    source = ev.get("source", "")
+    tags = [(SOURCE_NAMES.get(source, source), source)]
     if with_type and ev.get("type"):
-        tags.append(ev["type"].capitalize())
+        tags.append((ev["type"].capitalize(), "type"))
     if ev.get("is_free") is True:
-        tags.append("Free")
-    return "".join(f'<span class="ce-tag">{esc(t)}</span>' for t in tags if t)
+        tags.append(("Free", "free"))
+    return "".join(f'<span class="ce-tag {cls}">{esc(text)}</span>' for text, cls in tags if text)
 
 
 def thumb_html(ev, cls="ce-thumb"):
     if ev.get("poster_url"):
-        return f'<div class="{cls}"><img src="{esc(ev["poster_url"])}" alt=""></div>'
-    return f'<div class="{cls}">{ICON_IMG}</div>'
+        return f'<div class="{cls} {tint(ev)}"><img src="{esc(ev["poster_url"])}" alt=""></div>'
+    return f'<div class="{cls} {tint(ev)}">{ICON_IMG}</div>'
 
 
 def card_html(ev):
     summary = ev.get("description")
-    summary_html = f'<div class="ce-summary"><span>✦</span> {esc(summary)}</div>' if summary else ""
+    summary_html = f'<div class="ce-summary {tint(ev)}"><span>✦</span> {esc(summary)}</div>' if summary else ""
     return (f'{thumb_html(ev)}<div class="ce-card-body"><div class="ce-card-title">{esc(ev["title"])}</div>'
             f'<div class="ce-meta">{meta_line(ev)}</div>{summary_html}'
             f'<div class="ce-tags">{tags_html(ev)}</div></div>')
@@ -204,26 +213,41 @@ def details_html(ev):
             f'<h2>{esc(ev["title"])}</h2><div class="ce-tiles">{tiles_html}</div>{sections}</div></div>')
 
 
+MAP_STYLE = """<style>
+  :root { --bg:#fbf7f2; --card:#ffffff; --border:#ece6f7; --muted:#8a8499; --title:#4b3a8f; }
+  html.dark { --bg:#15131c; --card:#1e1b28; --border:#322d44; --muted:#9a94ad; --title:#ece9f5; }
+  .leaflet-container { background: var(--bg); font-family: system-ui, sans-serif; }
+  .leaflet-tile-pane { filter: saturate(.35) brightness(1.04); }
+  html.dark .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.72) contrast(1.1); }
+  .leaflet-tile-container img { width: 256.6px !important; height: 256.6px !important; }  /* hides tile seams */
+  .leaflet-tooltip { background: var(--card) !important; color: var(--muted) !important;
+    border: 1px solid var(--border) !important; border-radius: 14px !important; padding: 10px 12px !important;
+    white-space: normal !important; width: max-content !important; max-width: 290px !important;
+    font-size: 12px !important; box-shadow: 0 8px 24px rgba(40, 30, 80, .18) !important; }
+  .leaflet-tooltip b { color: var(--title) !important; font-size: 14px !important; font-weight: 600 !important;
+    display: block !important; margin-bottom: 3px !important; }
+  .leaflet-tooltip-top:before { border-top-color: var(--border) !important; }
+  .ce-tip { display: flex; gap: 10px; align-items: flex-start; }
+  .ce-tip img { width: 44px; height: 44px; flex: none; border-radius: 10px; object-fit: cover; }
+  .ce-closes { color: #e0809a; }
+  .leaflet-interactive { cursor: pointer; }
+</style>
+<script>
+  // copy day/night from the page around the map (the theme button can change it any time)
+  setInterval(() => document.documentElement.classList.toggle(
+      "dark", !!parent.document.querySelector(".dark")), 400);
+</script>"""
+
+
 def map_html(lat, lon, radius, found):
     """Dark folium map with a dashed radius circle and coloured pins, inside an iframe we size ourselves."""
     m = folium.Map(location=[lat, lon], tiles="OpenStreetMap", zoom_control=True)
     # Free OpenStreetMap tiles, turned dark with a colour filter (dark tile services now need a key).
-    m.get_root().header.add_child(folium.Element(
-        "<style>.leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.75) contrast(1.1)}"
-        ".leaflet-container{background:#141414;font-family:system-ui,sans-serif}"
-        # tiny overlap hides the thin lines between map tiles
-        ".leaflet-tile-container img{width:256.6px!important;height:256.6px!important}"
-        # hover card: dark, white title, wraps long names
-        ".leaflet-tooltip{background:#1c1c1c!important;color:#a0a0a0!important;border:1px solid #3a3a3a!important;border-radius:12px!important;"
-        "padding:10px 12px!important;white-space:normal!important;width:max-content!important;max-width:290px!important;font-size:12px!important;"
-        "box-shadow:0 6px 20px rgba(0,0,0,.5)!important}"
-        ".leaflet-tooltip b{color:#fff!important;font-size:14px!important;font-weight:600!important;display:block!important;margin-bottom:3px!important}"
-        ".ce-tip{display:flex;gap:10px;align-items:flex-start}"
-        ".ce-tip img{width:44px;height:44px;flex:none;border-radius:8px;object-fit:cover;background:#262640}"
-        ".leaflet-tooltip-top:before{border-top-color:#3a3a3a!important}</style>"))
-    folium.Circle([lat, lon], radius=radius * 1000, color="#7b70e8", weight=2, dash_array="6 6",
-                  fill=True, fill_color=PURPLE, fill_opacity=0.08).add_to(m)
-    folium.CircleMarker([lat, lon], radius=6, color=PURPLE, fill=True, fill_opacity=1,
+    # The map lives in its own frame, so it has its own day/night colours and copies the page's mode.
+    m.get_root().header.add_child(folium.Element(MAP_STYLE))
+    folium.Circle([lat, lon], radius=radius * 1000, color="#b8a9f5", weight=2, dash_array="6 6",
+                  fill=True, fill_color="#b8a9f5", fill_opacity=0.12).add_to(m)
+    folium.CircleMarker([lat, lon], radius=7, color="white", weight=2, fill=True, fill_color=BLUSH, fill_opacity=1,
                         tooltip="You are here").add_to(m)
     pins = []  # (folium's JavaScript name for the pin, event id)
     for ev in found:
@@ -231,21 +255,23 @@ def map_html(lat, lon, radius, found):
             continue
         logo = f'<img src="{esc(ev["poster_url"])}" alt="">' if ev.get("poster_url") else ""
         tip = f'<div class="ce-tip">{logo}<div><b>{esc(ev["title"])}</b>{meta_line(ev)}</div></div>'
-        pin = folium.CircleMarker([ev["lat"], ev["lon"]], radius=8, color="white", weight=1, fill=True,
+        pin = folium.CircleMarker([ev["lat"], ev["lon"]], radius=9, color="white", weight=2, fill=True,
                                   fill_color=pin_color(ev), fill_opacity=1,
                                   tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(m)
         pins.append((pin.get_name(), ev["id"]))
     d = radius / 111  # about 111 km per degree, so the whole circle fits on screen
-    m.fit_bounds([[lat - d, lon - d], [lat + d, lon + d]])
+    bounds = [[lat - d, lon - d], [lat + d, lon + d]]
+    m.fit_bounds(bounds)
     # Clicking a pin writes its event id into the hidden #ce-pin-id box on the page, which opens the details.
     # The time is added so clicking the same pin twice still counts as a change.
     clicks = "".join(f"{name}.on('click', () => pick({json.dumps(event_id)}));" for name, event_id in pins)
+    # re-measure once the frame has its final size, so tiles fill the whole map
+    clicks += f"setTimeout(() => {{ {m.get_name()}.invalidateSize(); {m.get_name()}.fitBounds({json.dumps(bounds)}); }}, 300);"
     m.get_root().html.add_child(folium.Element(
         "<script>window.addEventListener('load', () => {"
         "function pick(id) { const box = parent.document.querySelector('#ce-pin-id textarea');"
         " box.value = id + '|' + Date.now(); box.dispatchEvent(new Event('input', {bubbles: true})); }"
-        + clicks + "});</script>"
-        "<style>.leaflet-interactive{cursor:pointer}</style>"))
+        + clicks + "});</script>"))
     page = html.escape(m.get_root().render(), quote=True)
     legend = (f'<div class="ce-legend"><span style="background:{PURPLE}"></span>Hackathon'
               f'<span style="background:{GREEN}"></span>Workshop</div>')
@@ -342,102 +368,149 @@ def save_poster(title, ev_type, when, mode, city, eligibility, requirements, lin
 # ---------- look ----------
 
 CSS = """
+/* ---------- colours: day (default) and night (.dark, set by the system or the theme button) ---------- */
+:root {
+  --ce-bg: #fbf7f2; --ce-card: #ffffff; --ce-inner: #f3eefe; --ce-border: #ece6f7;
+  --ce-text: #2e2a3b; --ce-muted: #8a8499; --ce-accent: #b8a9f5; --ce-accent-ink: #4b3a8f;
+  --ce-on-accent: #2e2a3b; --ce-title: #4b3a8f;
+  --ce-lilac-bg: #f3eefe; --ce-lilac-ink: #4b3a8f;  --ce-mint-bg: #e3f6ee;  --ce-mint-ink: #2f7a5c;
+  --ce-peach-bg: #fff0e6; --ce-peach-ink: #8a5a3a;  --ce-blush-bg: #ffe9ee; --ce-blush-ink: #b04a64;
+  --ce-sky-bg: #e8f3fd;   --ce-sky-ink: #3d6a92;    --ce-peach: #ffd3b6;
+}
+.dark {
+  --ce-bg: #15131c; --ce-card: #1e1b28; --ce-inner: #282436; --ce-border: #322d44;
+  --ce-text: #ece9f5; --ce-muted: #9a94ad; --ce-accent: #b8a9f5; --ce-accent-ink: #b8a9f5;
+  --ce-on-accent: #15131c; --ce-title: #ece9f5;
+  --ce-lilac-bg: #2c2740; --ce-lilac-ink: #b8a9f5;  --ce-mint-bg: #233a35;  --ce-mint-ink: #8fdcbf;
+  --ce-peach-bg: #3a2c26; --ce-peach-ink: #ffc4a3;  --ce-blush-bg: #3a2531; --ce-blush-ink: #f7a8bc;
+  --ce-sky-bg: #22303f;   --ce-sky-ink: #a9d4f5;    --ce-peach: #ffc4a3;
+}
+/* hand our colours to Gradio's own components too */
 :root, .dark {
-  --body-background-fill: #141414; --background-fill-primary: #141414; --background-fill-secondary: #1c1c1c;
-  --block-background-fill: #1c1c1c; --block-border-color: #2a2a2a; --border-color-primary: #2a2a2a;
-  --input-background-fill: #1c1c1c; --input-border-color: #2a2a2a;
-  --body-text-color: #f2f2f2; --body-text-color-subdued: #a0a0a0; --block-label-text-color: #a0a0a0;
-  --color-accent: #5b4fd6; --button-primary-background-fill: #5b4fd6; --button-primary-background-fill-hover: #6b60e0;
-  --button-secondary-background-fill: #1c1c1c; --button-secondary-text-color: #f2f2f2;
-  --button-secondary-border-color: #2a2a2a; --block-radius: 14px; --layout-gap: 12px;
+  --body-background-fill: var(--ce-bg); --background-fill-primary: var(--ce-bg);
+  --background-fill-secondary: var(--ce-card); --block-background-fill: var(--ce-card);
+  --block-border-color: var(--ce-border); --border-color-primary: var(--ce-border);
+  --input-background-fill: var(--ce-card); --input-border-color: var(--ce-border);
+  --body-text-color: var(--ce-text); --body-text-color-subdued: var(--ce-muted);
+  --block-label-text-color: var(--ce-muted); --color-accent: var(--ce-accent);
+  --button-primary-background-fill: var(--ce-accent); --button-primary-background-fill-hover: var(--ce-accent);
+  --button-primary-text-color: var(--ce-on-accent);
+  --button-secondary-background-fill: var(--ce-card); --button-secondary-text-color: var(--ce-text);
+  --button-secondary-border-color: var(--ce-border); --block-radius: 14px; --layout-gap: 12px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
-body, gradio-app, .gradio-container { background: #141414 !important; color: #f2f2f2; }
+body, gradio-app, .gradio-container { background: var(--ce-bg) !important; color: var(--ce-text); }
 .gradio-container { max-width: 1280px !important; margin: 0 auto !important; padding: 8px 16px !important; }
 .gradio-container > .main, .gradio-container .wrap.contain { margin: 0 auto !important; width: 100% !important; }
 footer { display: none !important; }
 #ce-pin-id { display: none !important; }
+* { scrollbar-width: thin; scrollbar-color: var(--ce-border) transparent; }
 
 /* top bar */
 #ce-top { align-items: center; gap: 12px; flex-wrap: nowrap; }
-.ce-logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; white-space: nowrap; }
-.ce-logo-box { background: #5b4fd6; width: 34px; height: 34px; border-radius: 9px;
-               display: inline-flex; align-items: center; justify-content: center; }
 #ce-top .block { border: none !important; background: transparent !important; padding: 0 !important; }
-#ce-top input, #ce-top .wrap { border-radius: 12px !important; }
-#ce-poster-btn, #ce-refresh-btn { border-radius: 12px; white-space: nowrap; }
+.ce-logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 19px;
+           white-space: nowrap; color: var(--ce-title); }
+.ce-logo-box { background: var(--ce-accent); width: 36px; height: 36px; flex: none; border-radius: 10px;
+               display: inline-flex; align-items: center; justify-content: center; }
+.ce-logo-box svg { stroke: var(--ce-accent-ink); }
+.dark .ce-logo-box svg { stroke: #15131c; }
+#ce-top input { border-radius: 999px !important; background: var(--ce-card) !important;
+                border: 1px solid var(--ce-border) !important; padding-left: 16px !important; }
+#ce-top .wrap { border-radius: 999px !important; }
+#ce-refresh-btn, #ce-theme-btn { border-radius: 999px !important; border: 1px solid var(--ce-border) !important; }
+#ce-poster-btn { border-radius: 999px !important; white-space: nowrap; background: var(--ce-peach) !important;
+                 color: #3a2a20 !important; border: none !important; font-weight: 600; }
 
-/* chips */
+/* chips: each one has its own pastel colour */
 #ce-chips, #ce-chips *, #ce-sort, #ce-list-head, #ce-list-head .block {
   background-color: transparent; border-color: transparent; box-shadow: none !important; }
+.form:has(#ce-chips), .form:has(#ce-sort), .form:has(#ce-count) {
+  background: transparent !important; border: none !important; box-shadow: none !important; }
 #ce-chips { padding: 0 !important; }
-#ce-chips .wrap { gap: 8px; flex-wrap: wrap; }
-#ce-chips label { border: 1px solid #3a3a3a !important; border-radius: 999px !important; flex: none !important;
-                  height: auto !important; padding: 6px 14px !important; }
-#ce-sort .wrap { border: 1px solid #2a2a2a !important; border-radius: 10px !important; }
-#ce-chips label.selected { background: #2b2860 !important; border-color: #7b70e8 !important; }
+#ce-chips .wrap { gap: 8px; flex-wrap: wrap; scrollbar-width: none; }
 #ce-chips input[type=radio] { display: none; }
+#ce-chips label { border: none !important; border-radius: 999px !important; flex: none !important;
+                  height: auto !important; padding: 6px 16px !important; }
+#ce-chips label:nth-child(1) { background: var(--ce-lilac-bg) !important; color: var(--ce-lilac-ink) !important; }
+#ce-chips label:nth-child(2) { background: var(--ce-lilac-bg) !important; color: var(--ce-lilac-ink) !important; }
+#ce-chips label:nth-child(3) { background: var(--ce-mint-bg) !important;  color: var(--ce-mint-ink) !important; }
+#ce-chips label:nth-child(4) { background: var(--ce-peach-bg) !important; color: var(--ce-peach-ink) !important; }
+#ce-chips label:nth-child(5) { background: var(--ce-sky-bg) !important;   color: var(--ce-sky-ink) !important; }
+#ce-chips label:nth-child(6) { background: var(--ce-blush-bg) !important; color: var(--ce-blush-ink) !important; }
+#ce-chips label.selected { background: var(--ce-accent) !important; color: var(--ce-on-accent) !important;
+                           font-weight: 600; }
 
 /* map */
-.ce-map { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid #2a2a2a; }
+.ce-map { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--ce-border); }
 .ce-map iframe { width: 100%; height: 620px; border: 0; display: block; }
-.ce-legend { position: absolute; left: 12px; bottom: 12px; background: #1c1c1c; border: 1px solid #2a2a2a;
-             border-radius: 10px; padding: 6px 10px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.ce-legend { position: absolute; left: 12px; bottom: 12px; background: var(--ce-card); color: var(--ce-text);
+             border: 1px solid var(--ce-border); border-radius: 999px; padding: 6px 14px; font-size: 13px;
+             display: flex; align-items: center; gap: 6px; }
 .ce-legend span { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-left: 6px; }
-.ce-error { color: #ff7b7b; }
+.ce-error { color: var(--ce-blush-ink); }
 
 /* list */
 #ce-list-col { max-height: 680px; overflow-y: auto; flex-direction: column !important; flex-wrap: nowrap !important; }
 #ce-list-col > * { width: 100% !important; flex: none !important; }
-* { scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
-#ce-chips .wrap { scrollbar-width: none; }
 #ce-list-head { align-items: center; }
-#ce-count { color: #a0a0a0; }
+#ce-count { color: var(--ce-muted); }
 #ce-sort { max-width: 170px; }
-.ce-card { border: 1px solid #2a2a2a !important; border-radius: 14px !important; background: #1c1c1c !important;
-           padding: 14px !important; margin-bottom: 10px; gap: 8px !important; }
-.ce-card.selected { border-color: #7b70e8 !important; }
+#ce-sort .wrap { border: 1px solid var(--ce-border) !important; border-radius: 999px !important; }
+.ce-card { border: 1px solid var(--ce-border) !important; border-radius: 18px !important; background: var(--ce-card) !important;
+           padding: 16px !important; margin-bottom: 10px; gap: 8px !important; }
+.ce-card.selected { border: 2px solid var(--ce-accent) !important; }
 .ce-card > .html-container, .ce-card .prose { padding: 0 !important; }
-.ce-card .ce-row { display: flex; gap: 14px; }
-.ce-thumb { width: 70px; height: 70px; flex: none; background: #262640; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.ce-thumb img, .ce-poster img { width: 100%; height: 100%; object-fit: cover; }
 .ce-card-html { display: flex; gap: 14px; }
+.ce-thumb { width: 72px; height: 72px; flex: none; border-radius: 14px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; background: var(--ce-lilac-bg); }
+.ce-thumb.mint, .ce-poster.mint { background: var(--ce-mint-bg); }
+.ce-thumb.peach, .ce-poster.peach { background: var(--ce-peach-bg); }
+.ce-thumb svg, .ce-poster svg { stroke: var(--ce-accent-ink); }
+.ce-thumb img, .ce-poster img { width: 100%; height: 100%; object-fit: cover; }
 .ce-card-body { flex: 1; min-width: 0; }
-.ce-card-title { font-weight: 600; font-size: 16px; margin-bottom: 2px; }
-.ce-meta { color: #a0a0a0; font-size: 13px; margin-bottom: 8px; }
-.ce-summary { background: #262626; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
-.ce-summary span { color: #8b80f0; }
+.ce-card-title { font-weight: 600; font-size: 16px; margin-bottom: 2px; color: var(--ce-text); }
+.ce-meta { color: var(--ce-muted); font-size: 13px; margin-bottom: 8px; }
+.ce-closes { color: var(--ce-blush-ink); }
+.ce-summary { background: var(--ce-lilac-bg); color: var(--ce-lilac-ink); border-radius: 12px;
+              padding: 8px 12px; font-size: 13px; margin-bottom: 8px; }
+.ce-summary.mint { background: var(--ce-mint-bg); color: var(--ce-mint-ink); }
+.dark .ce-summary, .dark .ce-summary.mint { background: var(--ce-inner); color: var(--ce-text); }
+.ce-summary span { color: var(--ce-accent-ink); }
 .ce-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-.ce-tag { border: 1px solid #3a3a3a; border-radius: 8px; padding: 2px 8px; font-size: 12px; color: #d0d0d0; }
-.ce-details-btn { align-self: flex-end; max-width: 130px; border-radius: 12px !important;
-                  border: 1px solid #3a3a3a !important; padding: 8px 16px !important; font-weight: 600; }
-.ce-details-btn:hover { background: #262626 !important; }
-/* Gradio wraps inputs in a grey "form" box; remove it around the chips and the sort menu */
-.form:has(#ce-chips), .form:has(#ce-sort), .form:has(#ce-count) {
-  background: transparent !important; border: none !important; box-shadow: none !important; }
+.ce-tag { border-radius: 999px; padding: 2px 10px; font-size: 12px; background: var(--ce-lilac-bg); color: var(--ce-lilac-ink); }
+.ce-tag.unstop { background: var(--ce-sky-bg); color: var(--ce-sky-ink); }
+.ce-tag.devpost { background: var(--ce-blush-bg); color: var(--ce-blush-ink); }
+.ce-tag.poster { background: var(--ce-mint-bg); color: var(--ce-mint-ink); }
+.ce-tag.free { background: var(--ce-peach-bg); color: var(--ce-peach-ink); }
+.ce-details-btn { align-self: flex-end; max-width: 130px; border-radius: 999px !important; font-weight: 600;
+                  border: 1.5px solid var(--ce-accent) !important; color: var(--ce-accent-ink) !important;
+                  background: transparent !important; padding: 8px 16px !important; }
+.ce-details-btn:hover, .ce-card.selected .ce-details-btn { background: var(--ce-accent) !important;
+                  color: var(--ce-on-accent) !important; }
 
 /* details page */
-#ce-back { max-width: 180px; border-radius: 999px; }
-.ce-details { display: grid; grid-template-columns: 38% 1fr; gap: 24px; }
-.ce-poster { aspect-ratio: 1; background: #262640; border-radius: 14px; display: flex;
+#ce-back { max-width: 180px; border-radius: 999px !important; }
+.ce-details { display: grid; grid-template-columns: 38% 1fr; gap: 24px; color: var(--ce-text); }
+.ce-poster { aspect-ratio: 1; background: var(--ce-lilac-bg); border-radius: 18px; display: flex;
              align-items: center; justify-content: center; overflow: hidden; }
 .ce-poster svg { width: 40px; height: 40px; }
-.ce-register-card { border: 1px solid #2a2a2a; border-radius: 14px; padding: 16px; margin-top: 14px; text-align: center; }
-.ce-register { display: block; border: 1px solid #3a3a3a; border-radius: 10px; padding: 10px;
-               color: #f2f2f2 !important; text-decoration: none !important; font-weight: 600; }
-.ce-register:hover { background: #262626; }
-.ce-caption { color: #a0a0a0; font-size: 13px; margin-top: 8px; }
-.ce-details-right h2 { font-size: 28px; font-weight: 600; margin: 10px 0 14px; }
-.ce-details-right h4 { font-weight: 600; margin: 16px 0 6px; }
-.ce-details-right p, .ce-details-right li { color: #d0d0d0; }
+.ce-register-card { border: 1px solid var(--ce-border); background: var(--ce-card); border-radius: 18px;
+                    padding: 16px; margin-top: 14px; text-align: center; }
+.ce-register { display: block; background: var(--ce-accent); border-radius: 999px; padding: 11px;
+               color: var(--ce-on-accent) !important; text-decoration: none !important; font-weight: 600; }
+.ce-register:hover { filter: brightness(1.05); }
+.ce-caption { color: var(--ce-muted); font-size: 13px; margin-top: 8px; }
+.ce-details-right h2 { font-size: 28px; font-weight: 600; margin: 10px 0 14px; color: var(--ce-title); }
+.ce-details-right h4 { font-weight: 600; margin: 16px 0 6px; color: var(--ce-text); }
+.ce-details-right p, .ce-details-right li { color: var(--ce-text); opacity: .85; }
 .ce-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ce-tile { background: #262626; border-radius: 10px; padding: 10px 14px; }
-.ce-tile-label { color: #a0a0a0; font-size: 13px; }
-.ce-tile-value { font-weight: 600; }
+.ce-tile { background: var(--ce-inner); border-radius: 12px; padding: 10px 14px; }
+.ce-tile-label { color: var(--ce-muted); font-size: 13px; }
+.ce-tile-value { font-weight: 600; color: var(--ce-text); }
 
 /* poster panel */
-#ce-poster-panel { border: 1px solid #2a2a2a; border-radius: 14px; padding: 16px; background: #1c1c1c; }
+#ce-poster-panel { border: 1px solid var(--ce-border); border-radius: 18px; padding: 16px; background: var(--ce-card); }
 
 /* phone */
 @media (max-width: 768px) {
@@ -448,16 +521,16 @@ footer { display: none !important; }
   #ce-chips .wrap { flex-wrap: nowrap; overflow-x: auto; }
   #ce-body { flex-direction: column; }
   .ce-map iframe { height: 40vh; }
-  #ce-list-col { max-height: none; border-radius: 18px 18px 0 0; border-top: 1px solid #2a2a2a;
+  #ce-list-col { max-height: none; border-radius: 20px 20px 0 0; border-top: 1px solid var(--ce-border);
                  padding-top: 14px; position: relative; }
   #ce-list-col::before { content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-                         width: 40px; height: 4px; border-radius: 4px; background: #3a3a3a; }
+                         width: 40px; height: 4px; border-radius: 4px; background: var(--ce-border); }
   .ce-summary { display: none; }
   .ce-details { display: flex; flex-direction: column; gap: 16px; }
   .ce-details-left { display: contents; }          /* lets the Register card move to the end */
   .ce-poster { order: 0; aspect-ratio: 16 / 10; }
   .ce-details-right { order: 1; }
-  .ce-register-card { order: 2; position: sticky; bottom: 0; background: #141414; z-index: 5; margin: 0; }
+  .ce-register-card { order: 2; position: sticky; bottom: 0; z-index: 5; margin: 0; }
 }
 """
 
@@ -479,6 +552,7 @@ with gr.Blocks(title=TITLE) as demo:
                 city = gr.Textbox(DEFAULT_CITY, show_label=False, placeholder="🔍 City", scale=3)
                 radius = gr.Dropdown(RADIUS_CHOICES, value=DEFAULT_RADIUS, show_label=False, scale=1, min_width=150)
                 refresh_btn = gr.Button("↻", elem_id="ce-refresh-btn", scale=0, min_width=48)
+                theme_btn = gr.Button("🌗", elem_id="ce-theme-btn", scale=0, min_width=48)
                 poster_btn = gr.Button("📷 Add from poster", elem_id="ce-poster-btn", scale=0, min_width=170)
             chip = gr.Radio(CHIPS, value="All", show_label=False, elem_id="ce-chips")
 
@@ -532,6 +606,12 @@ with gr.Blocks(title=TITLE) as demo:
             trigger(show_events, list_inputs, list_outputs)
         refresh_btn.click(refresh, list_inputs, list_outputs)
         back_btn.click(back_to_events, None, [main_view, details_view])
+        # The day/night switch runs only in the browser. Gradio marks night mode with a "dark" class.
+        theme_btn.click(None, js="""() => {
+            const night = !!document.querySelector('.dark');
+            document.querySelectorAll('.dark').forEach(el => el.classList.remove('dark'));
+            if (!night) document.body.classList.add('dark');
+        }""")
         pin_box.change(open_from_pin, [pin_box, found_state],
                       [main_view, details_view, details_box, selected_state])
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
