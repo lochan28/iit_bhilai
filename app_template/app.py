@@ -326,25 +326,42 @@ def ask_about_event(question, history, event_id):
     """Chat on the details page: one Gemma call, answering only from this event's details."""
     history = history or []
     if not question.strip():
-        return "", history
+        yield "", history
+        return
     ev = next((e for e in events.load_events() if e["id"] == event_id), None)
     if ev is None:
-        return "", history + [{"role": "user", "content": question},
-                              {"role": "assistant", "content": "Open an event first."}]
-    facts = {k: ev.get(k) for k in ("title", "organiser", "type", "mode", "city", "start", "end", "event_end",
+        yield "", history + [{"role": "user", "content": question},
+                             {"role": "assistant", "content": "Open an event first."}]
+        return
+    facts = {k: ev.get(k) for k in ("title", "organiser", "type", "mode", "city",
                                     "is_free", "description", "eligibility", "requirements", "register_url")}
-    facts["full_details"] = ev.get("details_text", "")[:3000]
+    # clear names help Gemma find the facts
+    facts.update({"registration_opens": ev.get("start"), "registration_closes": ev.get("end"),
+                  "event_ends": ev.get("event_end"), "today": str(date.today())})
+    facts["full_details"] = ev.get("details_text", "")[:1200]  # shorter prompt = faster answer
     chat = "\n".join(f"{m['role']}: {m['content']}" for m in history[-6:])
     prompt = (f"Event details (JSON):\n{json.dumps(facts, ensure_ascii=False)}\n\n"
               f"Conversation so far:\n{chat}\n\nStudent's question: {question}")
     rule = ("You answer a student's questions about ONE event, using only the event details given. "
             "If the answer is not in the details, say so and suggest checking the register link. "
             "Answer in 1-3 short sentences.")
+    history = history + [{"role": "user", "content": question}, {"role": "assistant", "content": "…"}]
+    yield "", history  # show the question straight away
+    # Short questions do not need Gemma's long thinking: "minimal" answers in ~2 s instead of ~7 s.
+    # The answer is streamed, so words appear as Gemma writes them.
+    from google.genai import types
+    config = types.GenerateContentConfig(system_instruction=rule,
+                                         thinking_config=types.ThinkingConfig(thinking_level="minimal"))
+    answer = ""
     try:
-        answer = gemma_client.ask(prompt, system=rule)
+        for chunk in gemma_client.get_client().models.generate_content_stream(
+                model=gemma_client.MODEL, contents=prompt, config=config):
+            answer += chunk.text or ""
+            history[-1]["content"] = answer or "…"
+            yield "", history
     except Exception as error:
-        answer = gemma_client.describe_error(error)
-    return "", history + [{"role": "user", "content": question}, {"role": "assistant", "content": answer}]
+        history[-1]["content"] = gemma_client.describe_error(error)
+        yield "", history
 
 
 def back_to_events():
