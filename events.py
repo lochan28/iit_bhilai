@@ -19,6 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # ---- Tunable values --------------------------------------------------------
 GEMMA_SUMMARY_LIMIT = 0    # new Gemma summaries per refresh; the rest are made when someone opens an event
 HTTP_TIMEOUT = 40          # seconds to wait for each API before giving up
+REFRESH_HOURS = 6          # auto-refresh interval; lower = fresher events but more calls to the event sites
 
 # ---- Fixed values ----------------------------------------------------------
 # Where the data files live. A website can point this at persistent storage.
@@ -38,6 +39,9 @@ UNSTOP_CATEGORIES = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 1
                      "conferences": ("conference", 1), "competitions": ("competition", 2)}
 DEVPOST_URL = "https://devpost.com/api/hackathons"
 DEVPOST_PAGES = 5          # Devpost sends 9 events per page
+DEVFOLIO_URL = "https://api.devfolio.co/api/search/hackathons"
+HACKEREARTH_URL = "https://www.hackerearth.com/chrome-extension/events/"
+MLH_URL = "https://mlh.io/seasons/2027/events"
 HEADERS = {"User-Agent": "Mozilla/5.0 (hackfindr student project)"}
 
 
@@ -272,6 +276,111 @@ def fetch_devpost(limit=None):
     return events
 
 
+# ---------- Devfolio (Indian hackathons) ----------
+def fetch_devfolio():
+    body = {"type": "application_open", "from": 0, "size": 30}
+    r = requests.post(DEVFOLIO_URL, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    events = []
+    for hit in r.json().get("hits", {}).get("hits", []):
+        it = hit.get("_source", {})
+        online = bool(it.get("is_online"))
+        city = ", ".join(x for x in [it.get("city"), it.get("state")] if x) or it.get("location") or ""
+        slug = it.get("slug", "")
+        events.append({
+            "id": make_id("devfolio", slug or it.get("name")),
+            "title": it.get("name", ""),
+            "organiser": "",
+            "type": guess_type(it.get("name", ""), "hackathon"),
+            "mode": "online" if online or not city else "offline",
+            "city": "" if online else city,
+            "start": (it.get("starts_at") or "")[:10],
+            "end": (it.get("ends_at") or "")[:10],
+            "description": it.get("tagline") or "",
+            "eligibility": "",
+            "requirements": "",
+            "register_url": f"https://{slug}.devfolio.co" if slug else "https://devfolio.co/hackathons",
+            "event_end": (it.get("ends_at") or "")[:10],
+            "is_free": None,
+            "poster_url": (it.get("hackathon_setting") or {}).get("logo") or "",
+            "source": "devfolio",
+        })
+    return events
+
+
+# ---------- HackerEarth (online challenges, hackathons, webinars) ----------
+HACKEREARTH_TYPES = {"hackathon": "hackathon", "webinar": "webinar", "hiring": "hackathon"}
+
+
+def fetch_hackerearth():
+    r = requests.get(HACKEREARTH_URL, headers=HEADERS, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    events = []
+    for it in r.json().get("response", []):
+        if (it.get("status") or "").upper() == "ENDED":
+            continue
+        kind = (it.get("challenge_type") or "").lower()
+        events.append({
+            "id": make_id("hackerearth", it.get("url") or it.get("title")),
+            "title": it.get("title", ""),
+            "organiser": "HackerEarth",
+            "type": next((v for k, v in HACKEREARTH_TYPES.items() if k in kind), "hackathon"),
+            "mode": "online",
+            "city": "",
+            "start": (it.get("start_utc_tz") or it.get("start_tz") or "")[:10],
+            "end": (it.get("end_utc_tz") or it.get("end_tz") or "")[:10],
+            "description": (it.get("description") or "")[:300],
+            "eligibility": "",
+            "requirements": "",
+            "register_url": it.get("url", ""),
+            "event_end": "",
+            "is_free": None,
+            "poster_url": it.get("cover_image") or "",
+            "source": "hackerearth",
+        })
+    return events
+
+
+# ---------- MLH (Major League Hacking season page, HTML) ----------
+def fetch_mlh():
+    from bs4 import BeautifulSoup
+    r = requests.get(MLH_URL, headers=HEADERS, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "html.parser")
+    events = []
+    for card in soup.select("div.event"):
+        name = card.select_one(".event-name")
+        link = card.select_one("a")
+        if not name or not link:
+            continue
+        def text(sel):
+            el = card.select_one(sel)
+            return el.get_text(strip=True) if el else ""
+        city = ", ".join(x for x in [text('[itemprop="addressLocality"]'),
+                                     text('[itemprop="addressRegion"]')] if x)
+        online = "digital" in text(".event-hybrid-notes").lower() or not city
+        img = card.select_one(".image-wrap img") or card.select_one("img")
+        events.append({
+            "id": make_id("mlh", link.get("href")),
+            "title": name.get_text(strip=True),
+            "organiser": "MLH",
+            "type": "hackathon",
+            "mode": "online" if online else "offline",
+            "city": "" if online else city,
+            "start": text(".event-date"),
+            "end": "",
+            "description": "",
+            "eligibility": "",
+            "requirements": "",
+            "register_url": link.get("href", ""),
+            "event_end": "",
+            "is_free": None,
+            "poster_url": img.get("src", "") if img else "",
+            "source": "mlh",
+        })
+    return events
+
+
 # ---------- Gemma summaries of Unstop HTML (cached) ----------
 def short_text(text, limit=220):
     """First sentence or two of a long text, cut at a word boundary."""
@@ -360,12 +469,32 @@ def is_over(ev):
     return any(e and e < today for e in ends)
 
 
+SOURCES = {
+    "unstop": fetch_unstop,
+    "devpost": fetch_devpost,
+    "devfolio": fetch_devfolio,
+    "hackerearth": fetch_hackerearth,
+    "mlh": fetch_mlh,
+}
+
+
+def same_title(title):
+    """'Hack CG 2026!' and 'hack cg 2026' -> the same key, to spot one event listed on two sites."""
+    return "".join(ch for ch in title.lower() if ch.isalnum())
+
+
 def refresh_events(limit=None):
+    """Fetch all sources (one at a time, even if called from two places at once)."""
+    with _lock:
+        return _refresh(limit)
+
+
+def _refresh(limit=None):
     """Fetch live data; on any failure, fall back to the saved events.json."""
     events, saved = [], load_events()
-    for source, fetch in (("unstop", lambda: fetch_unstop(limit)), ("devpost", lambda: fetch_devpost(limit))):
+    for source, fetch in SOURCES.items():
         try:
-            events += fetch()
+            events += fetch(limit) if source in ("unstop", "devpost") else fetch()
         except Exception as e:     # one failing source should not lose its events
             print(fetch.__name__, "failed, keeping its saved events ->", e)
             events += [ev for ev in saved if ev.get("source") == source]
@@ -376,6 +505,7 @@ def refresh_events(limit=None):
     for ev in events:
         by_id[ev["id"]] = ev
     events = list(by_id.values())
+    events = list({same_title(ev["title"]): ev for ev in reversed(events)}.values())[::-1]  # same event on two sites -> keep one
     for ev in events:                # saved Devpost events from older runs may lack the end date
         if ev["source"] == "devpost" and not ev.get("end"):
             ev["end"] = devpost_end(ev.get("start", ""))
@@ -389,7 +519,7 @@ def refresh_events(limit=None):
     return events
 
 
-def start_auto_refresh(hours=6):
+def start_auto_refresh(hours=REFRESH_HOURS):
     """Website mode: fetch new events in the background, so visitors never have to."""
     def loop():
         while True:
@@ -414,6 +544,9 @@ def add_event(ev):
         events = [e for e in events if e["id"] != ev["id"]] + [ev]   # same poster twice -> keep one
         save_json(EVENTS_FILE, events)
     return ev
+
+
+_lock = threading.Lock()   # only one refresh at a time
 
 
 if __name__ == "__main__":

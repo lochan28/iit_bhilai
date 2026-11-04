@@ -34,7 +34,6 @@ PUBLIC = os.environ.get("HACKFINDR_PUBLIC") == "1"
 AI_PER_VISITOR_HOUR = 30   # Gemma calls one visitor may use per hour
 AI_PER_DAY = 500           # Gemma calls the whole website may use per day
 POSTERS_PER_VISITOR_HOUR = 5
-AUTO_REFRESH_HOURS = 6
 DEFAULT_CITY = "Raipur"
 DEFAULT_RADIUS = 300  # km shown when the app opens
 FETCH_CHOICES = [
@@ -952,7 +951,7 @@ if __name__ == "__main__":
         print(f"On the same Wi-Fi, open: http://{lan_address()}:7860")
     # share=True would put your app on the public internet. Do not.
     if PUBLIC:
-        events.start_auto_refresh(AUTO_REFRESH_HOURS)
+        events.start_auto_refresh()
     demo.queue(max_size=40)      # extra visitors wait in line instead of overloading the app
     demo.launch(share=False, server_name="0.0.0.0" if lan else None,
                 server_port=int(os.environ.get("GRADIO_SERVER_PORT", 7860)),
