@@ -1,7 +1,6 @@
 """HackFindr app. Run it from the repo folder:  python app_template/app.py
 
-Three tabs: the Events page (map + list + details + poster upload),
-ask Gemma 4 about a picture, and an agent that can use the event tools.
+One page: the map, event list, details with AI chat, and poster upload.
 """
 
 import sys
@@ -22,11 +21,7 @@ import gradio as gr
 
 import events
 import gemma_client
-from harness import Agent
 from harness.tools import filter_events
-
-SYSTEM_RULE = ("You help students find events. Use search_events, then get_event_details if needed. "
-               "List titles, cities, distances, dates and register links. Keep answers short.")
 
 TITLE = "HackFindr"
 # HACKFINDR_PUBLIC=1 turns on the website rules: visitor limits and no manual fetching.
@@ -85,41 +80,6 @@ def safe_url(url):
     """Only real web links may become clickable (a poster could contain a harmful javascript: link)."""
     url = str(url or "").strip()
     return url if re.match(r"https?://", url, re.IGNORECASE) else ""
-
-
-# ---------- Other tabs ----------
-
-def ask_about_picture(image_path, question, request: gr.Request = None):
-    """Works with a picture, or with text only."""
-    if not question.strip():
-        return "Please type a question first."
-    blocked = limit_message(request)
-    if blocked:
-        return blocked
-    question = question[:1000]
-    try:
-        if image_path:
-            return gemma_client.ask_with_image(image_path, question, system=SYSTEM_RULE)
-        return gemma_client.ask(question, system=SYSTEM_RULE)
-    except Exception as error:
-        return gemma_client.describe_error(error)
-
-
-def ask_agent(question, request: gr.Request = None):
-    """The agent may use tools. We show each step, then the answer."""
-    if not question.strip():
-        return "", "Please type a question first."
-    blocked = limit_message(request, cost=3)   # an agent run makes a few Gemma calls
-    if blocked:
-        return "", blocked
-    question = question[:500]
-    agent = Agent(system=SYSTEM_RULE)
-    try:
-        answer = agent.run(question)
-    except Exception as error:
-        return "", gemma_client.describe_error(error)
-    steps = "\n".join(f"{i}. {s['text']}" for i, s in enumerate(agent.steps[:-1], 1))
-    return steps or "(No tools were used.)", answer
 
 
 # ---------- small date helpers ----------
@@ -832,7 +792,7 @@ with gr.Blocks(title=TITLE) as demo:
     found_state = gr.State(FIRST_FOUND)   # the events currently shown
     selected_state = gr.State("")    # id of the last opened event
 
-    with gr.Tab("Events"):
+    with gr.Column():
         # ----- main view -----
         with gr.Column() as main_view:
             with gr.Row(elem_id="ce-top"):
@@ -921,19 +881,6 @@ with gr.Blocks(title=TITLE) as demo:
         extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes)
         add_btn.click(save_poster, poster_boxes + list_inputs, [poster_status] + list_outputs)
 
-    with gr.Tab("Ask about a picture"):
-        picture = gr.Image(type="filepath", label="Picture (optional)")
-        question = gr.Textbox(label="Your question", value="What can you tell me about this?")
-        submit = gr.Button("Submit")
-        answer = gr.Textbox(label="Answer", lines=6)
-        submit.click(ask_about_picture, [picture, question], answer)
-
-    with gr.Tab("Agent with tools"):
-        agent_question = gr.Textbox(label="Your question", value="hackathons within 200 km of Raipur")
-        agent_submit = gr.Button("Ask the agent")
-        agent_steps = gr.Textbox(label="Tool steps", lines=6)
-        agent_answer = gr.Textbox(label="Final answer", lines=4)
-        agent_submit.click(ask_agent, agent_question, [agent_steps, agent_answer])
 
 def lan_address():
     """This computer's address on the Wi-Fi, e.g. 10.50.33.81 (no data is actually sent)."""

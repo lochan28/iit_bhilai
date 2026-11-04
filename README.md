@@ -20,7 +20,7 @@ from **Unstop, Devpost, Devfolio, HackerEarth and MLH** (refreshed automatically
 It is built with **Gemma 4 (`gemma-4-26b-a4b-it`) through the Gemini API** (`google-genai`). Gemma:
 - summarizes each Unstop event page into a short description, eligibility and requirements,
 - reads a photo of an **event poster** and adds that event to the map (the demo highlight),
-- powers an **agent with tools**: ask "hackathons within 200 km of Raipur".
+- answers questions about an event in a small **chat** on its details page.
 
 ![screenshot](docs/screenshot.png)
 
@@ -49,8 +49,8 @@ a persistent folder if the host has one; otherwise new summaries and poster even
 | File | What it does |
 |---|---|
 | `events.py` | fetch Unstop, Devpost, Devfolio, HackerEarth, MLH (auto-refresh every `REFRESH_HOURS`), normalize to one schema, geocode cities (cached in `geocache.json`), Gemma summaries (cached in `summary_cache.json`), save `events.json` |
-| `harness/tools.py` | agent tools `search_events(city, radius_km, mode, event_type)` and `get_event_details(event_id)` |
-| `app_template/app.py` | Gradio UI: **Events Map** tab (folium map, online-events table, poster upload) and **Agent with tools** tab |
+| `harness/tools.py` | event search and distance filter used by the map |
+| `app_template/app.py` | Gradio UI: folium map, event list, details page with AI chat, poster upload |
 | `gemma_client.py` | the starter's Gemma 4 helper (spacing, retries, cache) |
 | `skills/hackfindr/SKILL.md` | agent skill describing how to use the tools |
 
