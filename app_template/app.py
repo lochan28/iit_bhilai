@@ -11,7 +11,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so we can imp
 
 import html
 import json
+import os
 import re
+import time
+from collections import defaultdict
 from datetime import date
 
 import folium
@@ -26,21 +29,75 @@ SYSTEM_RULE = ("You help students find events. Use search_events, then get_event
                "List titles, cities, distances, dates and register links. Keep answers short.")
 
 TITLE = "HackFindr"
+# HACKFINDR_PUBLIC=1 turns on the website rules: visitor limits and no manual fetching.
+PUBLIC = os.environ.get("HACKFINDR_PUBLIC") == "1"
+AI_PER_VISITOR_HOUR = 30   # Gemma calls one visitor may use per hour
+AI_PER_DAY = 500           # Gemma calls the whole website may use per day
+POSTERS_PER_VISITOR_HOUR = 5
+AUTO_REFRESH_HOURS = 6
 DEFAULT_CITY = "Raipur"
 DEFAULT_RADIUS = 300  # km shown when the app opens
-RADIUS_CHOICES = [(f"Within {km} km", km) for km in (50, 100, 300, 500, 1000, 2000)]
+FETCH_CHOICES = [
+    ("Fetch 50 events", 50),
+    ("Fetch 100 events", 100),
+    ("Fetch 200 events", 200),
+    ("Fetch 300 events", 300),
+    ("Fetch 500 events", 500),
+    ("Fetch 1000 events", 1000),
+]
+DEFAULT_FETCH_COUNT = 100
 CHIPS = ["All", "Hackathons", "Workshops", "Free", "This week", "Open to 1st year"]
-MAX_CARDS = 30        # cards shown in the list (more makes the page slow)
+MAX_CARDS = 100       # cards shown in the list
 PURPLE, GREEN, BLUSH = "#a597f2", "#7fd6b5", "#f7a8bc"  # pins: hackathon, workshop, "you are here"
-SOURCE_NAMES = {"unstop": "Unstop", "devpost": "Devpost", "poster": "Poster", "sample": "Sample"}
+SOURCE_NAMES = {"unstop": "Unstop", "devpost": "Devpost", "poster": "Unverified poster", "sample": "Sample"}
 
 
-# ---------- Other tabs (unchanged) ----------
+# ---------- website limits (only when PUBLIC) ----------
 
-def ask_about_picture(image_path, question):
+_usage = defaultdict(list)   # (kind, visitor) -> times of recent uses; kept in memory only
+
+
+def visitor_id(request):
+    """Who is asking. Behind a website proxy the real address is in x-forwarded-for."""
+    if request is None:
+        return "local"
+    forwarded = request.headers.get("x-forwarded-for", "")
+    return forwarded.split(",")[0].strip() or getattr(request.client, "host", "unknown")
+
+
+def limit_message(request, kind="ai", cost=1):
+    """Count one use. Returns "" if allowed, or a friendly message if a limit was reached."""
+    if not PUBLIC:
+        return ""
+    now, visitor = time.time(), visitor_id(request)
+    per_hour = POSTERS_PER_VISITOR_HOUR if kind == "poster" else AI_PER_VISITOR_HOUR
+    mine = _usage[kind, visitor] = [t for t in _usage[kind, visitor] if now - t < 3600]
+    everyone = _usage["day", "all"] = [t for t in _usage["day", "all"] if now - t < 86400]
+    if len(everyone) + cost > AI_PER_DAY:
+        return "HackFindr has used today's AI allowance. Please try again tomorrow."
+    if len(mine) + cost > per_hour:
+        return "You have reached the hourly limit. Please try again later."
+    mine.extend([now] * cost)
+    everyone.extend([now] * cost)
+    return ""
+
+
+def safe_url(url):
+    """Only real web links may become clickable (a poster could contain a harmful javascript: link)."""
+    url = str(url or "").strip()
+    return url if re.match(r"https?://", url, re.IGNORECASE) else ""
+
+
+# ---------- Other tabs ----------
+
+def ask_about_picture(image_path, question, request: gr.Request = None):
     """Works with a picture, or with text only."""
     if not question.strip():
         return "Please type a question first."
+    blocked = limit_message(request)
+    if blocked:
+        return blocked
+    question = question[:1000]
     try:
         if image_path:
             return gemma_client.ask_with_image(image_path, question, system=SYSTEM_RULE)
@@ -49,10 +106,14 @@ def ask_about_picture(image_path, question):
         return gemma_client.describe_error(error)
 
 
-def ask_agent(question):
+def ask_agent(question, request: gr.Request = None):
     """The agent may use tools. We show each step, then the answer."""
     if not question.strip():
         return "", "Please type a question first."
+    blocked = limit_message(request, cost=3)   # an agent run makes a few Gemma calls
+    if blocked:
+        return "", blocked
+    question = question[:500]
     agent = Agent(system=SYSTEM_RULE)
     try:
         answer = agent.run(question)
@@ -171,7 +232,7 @@ def tags_html(ev, with_type=False):
 
 
 def thumb_html(ev, cls="ce-thumb"):
-    if ev.get("poster_url"):
+    if safe_url(ev.get("poster_url")):
         return f'<div class="{cls} {tint(ev)}"><img src="{esc(ev["poster_url"])}" alt=""></div>'
     return f'<div class="{cls} {tint(ev)}">{ICON_IMG}</div>'
 
@@ -193,7 +254,7 @@ def bullets(text):
 def details_html(ev, note=""):
     """The details page. Tiles and sections without data are left out."""
     tiles = [("Date", nice_date(event_date(ev))), ("Location", ev.get("city") or "Online"),
-             ("Registration closes", nice_date(ev.get("end")))]
+             ("Registration closes", nice_date(ev.get("end"))), ("Team size", ev.get("team_size"))]
     tiles_html = "".join(f'<div class="ce-tile"><div class="ce-tile-label">{k}</div>'
                          f'<div class="ce-tile-value">{esc(v)}</div></div>' for k, v in tiles if v)
     sections = ""
@@ -205,7 +266,7 @@ def details_html(ev, note=""):
             sections += f"<h4>{label.capitalize()}</h4>{bullets(ev[label])}"
     source = SOURCE_NAMES.get(ev.get("source"), "the website")
     register = ""
-    if ev.get("register_url"):
+    if safe_url(ev.get("register_url")):
         register = (f'<div class="ce-register-card"><a class="ce-register" href="{esc(ev["register_url"])}" '
                     f'target="_blank" rel="noopener">Register on {esc(source)} ↗</a>'
                     f'<div class="ce-caption">Opens the official registration page</div></div>')
@@ -255,7 +316,7 @@ def map_html(lat, lon, radius, found):
     for ev in found:
         if ev.get("lat") is None:
             continue
-        logo = f'<img src="{esc(ev["poster_url"])}" alt="">' if ev.get("poster_url") else ""
+        logo = f'<img src="{esc(ev["poster_url"])}" alt="">' if safe_url(ev.get("poster_url")) else ""
         tip = f'<div class="ce-tip">{logo}<div><b>{esc(ev["title"])}</b>{meta_line(ev)}</div></div>'
         pin = folium.CircleMarker([ev["lat"], ev["lon"]], radius=9, color="white", weight=2, fill=True,
                                   fill_color=pin_color(ev), fill_opacity=1,
@@ -282,22 +343,24 @@ def map_html(lat, lon, radius, found):
 
 # ---------- what the buttons do ----------
 
-def show_events(city, radius, chip, sort):
+def show_events(city, radius, chip, sort, *args):
     """Redraw the map and the card list."""
     lat, lon, found = find_events(city, radius, chip, sort)
     if lat is None:
         return f"<p class='ce-error'>Could not find the city '{esc(city)}'.</p>", [], "0 events nearby"
     near = sum(1 for e in found if e.get("distance_km") is not None)
-    header = f"{near} events nearby · {len(found) - near} online"
+    total_db = len(events.load_events())
+    header = f"{near} nearby · {len(found) - near} online · ({total_db} total in database)"
     return map_html(lat, lon, int(radius), found), found, header
 
 
-def refresh(city, radius, chip, sort):
-    events.refresh_events()  # live fetch; falls back to the saved events.json
+def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, *args):
+    if not PUBLIC:   # on the website a background job fetches, so visitors cannot overload the sources
+        events.refresh_events(limit=int(fetch_count))  # live fetch with selected event count
     return show_events(city, radius, chip, sort)
 
 
-def open_details(event_id, found):
+def open_details(event_id, found, request=None):
     """Show the details view for one event."""
     ev = next((e for e in found if e["id"] == event_id), None)
     ev = ev or next((e for e in events.load_events() if e["id"] == event_id), None)
@@ -305,7 +368,10 @@ def open_details(event_id, found):
         return gr.update(), gr.update(), "<p class='ce-error'>Event not found.</p>", event_id
     note = ""
     if not ev.get("ai_summary") and ev.get("details_text"):
+        blocked = limit_message(request)
         try:
+            if blocked:
+                raise RuntimeError(blocked)
             ev = events.summarize_one(dict(ev))  # one Gemma call, then saved for everyone
             for i, e in enumerate(found):        # so the card list shows it too
                 if e["id"] == event_id:
@@ -315,18 +381,23 @@ def open_details(event_id, found):
     return gr.update(visible=False), gr.update(visible=True), details_html(ev, note), event_id
 
 
-def open_from_pin(value, found):
+def open_from_pin(value, found, request: gr.Request = None):
     """A map pin was clicked: the hidden box holds 'event_id|time'."""
     if not value:
         return gr.update(), gr.update(), gr.update(), gr.update()
-    return open_details(value.split("|")[0], found)
+    return open_details(value.split("|")[0], found, request)
 
 
-def ask_about_event(question, history, event_id):
+def ask_about_event(question, history, event_id, request: gr.Request = None):
     """Chat on the details page: one Gemma call, answering only from this event's details."""
     history = history or []
     if not question.strip():
         yield "", history
+        return
+    question = question[:500]
+    blocked = limit_message(request)
+    if blocked:
+        yield "", history + [{"role": "user", "content": question}, {"role": "assistant", "content": blocked}]
         return
     ev = next((e for e in events.load_events() if e["id"] == event_id), None)
     if ev is None:
@@ -336,6 +407,7 @@ def ask_about_event(question, history, event_id):
     facts = {k: ev.get(k) for k in ("title", "organiser", "type", "mode", "city",
                                     "is_free", "description", "eligibility", "requirements", "register_url")}
     # clear names help Gemma find the facts
+    facts["team_size"] = ev.get("team_size")
     facts.update({"registration_opens": ev.get("start"), "registration_closes": ev.get("end"),
                   "event_ends": ev.get("event_end"), "today": str(date.today())})
     facts["full_details"] = ev.get("details_text", "")[:1200]  # shorter prompt = faster answer
@@ -364,6 +436,13 @@ def ask_about_event(question, history, event_id):
         yield "", history
 
 
+def make_opener(event_id):
+    """The click handler for one card's Details button."""
+    def opener(found, request: gr.Request = None):
+        return open_details(event_id, found, request)
+    return opener
+
+
 def back_to_events():
     return gr.update(visible=True), gr.update(visible=False)
 
@@ -377,11 +456,14 @@ Use "" for anything not on the poster."""
 POSTER_FIELDS = ["title", "type", "date", "mode", "city", "eligibility", "requirements", "register_link"]
 
 
-def extract_poster(image_path):
+def extract_poster(image_path, request: gr.Request = None):
     """One Gemma call: read the poster and fill the editable fields."""
     empty = [""] * len(POSTER_FIELDS)
     if not image_path:
         return "Please upload a poster image first.", *empty
+    blocked = limit_message(request)
+    if blocked:
+        return blocked, *empty
     try:
         reply = gemma_client.ask_with_image(image_path, POSTER_PROMPT)
     except Exception as error:
@@ -398,10 +480,15 @@ def extract_poster(image_path):
 
 
 def save_poster(title, ev_type, when, mode, city, eligibility, requirements, link,
-                map_city, radius, chip, sort):
+                map_city, radius, chip, sort, fetch_count=None, request: gr.Request = None):
     """Save the (possibly edited) poster event to events.json and redraw."""
     if not title.strip():
         return "The event needs a title.", *show_events(map_city, radius, chip, sort)
+    blocked = limit_message(request, "poster")
+    if blocked:
+        return blocked, *show_events(map_city, radius, chip, sort)
+    title, city = title[:150], city[:100]
+    eligibility, requirements = eligibility[:500], requirements[:500]
     ev_mode = "online" if mode.strip().lower() == "online" else "offline"
     ev = {
         "id": events.make_id("poster", title + when),
@@ -409,7 +496,7 @@ def save_poster(title, ev_type, when, mode, city, eligibility, requirements, lin
         "mode": ev_mode, "city": city.strip() if ev_mode == "offline" else "",
         "start": when.strip(), "end": "", "description": "Added from a poster.",
         "eligibility": eligibility, "requirements": requirements,
-        "register_url": link.strip(), "poster_url": "", "source": "poster",
+        "register_url": safe_url(link), "poster_url": "", "source": "poster",
     }
     events.add_coords([ev])
     events.add_event(ev)
@@ -461,7 +548,17 @@ footer { display: none !important; }
 * { scrollbar-width: thin; scrollbar-color: var(--ce-border) transparent; }
 
 /* top bar */
-#ce-top { align-items: center; gap: 12px; flex-wrap: nowrap; }
+#ce-top { align-items: center; gap: 10px; flex-wrap: wrap !important; }
+/* logo keeps its natural width so the city box never covers it */
+#ce-top > :first-child { flex: 0 0 auto !important; min-width: 0 !important; width: auto !important; }
+/* the inputs share the remaining space and may shrink; buttons wrap to a new line if needed */
+#ce-top .form { flex: 1 1 560px !important; min-width: 0 !important; }
+#ce-top .form > * { flex: 1 1 0 !important; min-width: 0 !important; }
+#ce-top .form > #ce-radius { flex: 1.4 1 0 !important; }
+#ce-top button { flex: 0 0 auto !important; }
+/* beat the "#ce-top .block" reset so the radius box keeps its border and padding */
+#ce-top #ce-radius { background: var(--ce-card) !important; border: 1px solid var(--ce-border) !important;
+                     padding: 5px 14px 3px 14px !important; }
 #ce-top .block { border: none !important; background: transparent !important; padding: 0 !important; }
 .ce-logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 19px;
            white-space: nowrap; color: var(--ce-title); }
@@ -469,12 +566,121 @@ footer { display: none !important; }
                display: inline-flex; align-items: center; justify-content: center; }
 .ce-logo-box svg { stroke: var(--ce-accent-ink); }
 .dark .ce-logo-box svg { stroke: #15131c; }
-#ce-top input { border-radius: 999px !important; background: var(--ce-card) !important;
-                border: 1px solid var(--ce-border) !important; padding-left: 16px !important; }
-#ce-top .wrap { border-radius: 999px !important; }
-#ce-refresh-btn, #ce-theme-btn { border-radius: 999px !important; border: 1px solid var(--ce-border) !important; }
+
+/* Dissolve Gradio auto-generated form container so inputs don't collapse or overlap */
+#ce-top .form, .form:has(#ce-city) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+#ce-top .form > * {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  margin: 0 !important;
+}
+
+/* City search textbox */
+#ce-city { min-width: 0 !important; }
+#ce-city input {
+  border-radius: 999px !important;
+  background: var(--ce-card) !important;
+  border: 1px solid var(--ce-border) !important;
+  padding-left: 16px !important;
+  padding-right: 12px !important;
+  height: 44px !important;
+  font-size: 14px !important;
+  color: var(--ce-text) !important;
+}
+#ce-city .wrap { border-radius: 999px !important; }
+
+/* Radius slider styling in the top bar */
+#ce-radius {
+  background: var(--ce-card) !important;
+  border: 1px solid var(--ce-border) !important;
+  border-radius: 18px !important;
+  padding: 5px 14px 3px 14px !important;
+  min-width: 0 !important;
+  height: 48px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+#ce-radius .head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1px !important;
+}
+#ce-radius label {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+#ce-radius label span {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--ce-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+#ce-radius input[type="number"] {
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  height: 20px !important;
+  width: 50px !important;
+  padding: 0 4px !important;
+  background: var(--ce-inner) !important;
+  color: var(--ce-text) !important;
+  border: 1px solid var(--ce-border) !important;
+  text-align: right !important;
+  margin: 0 !important;
+}
+#ce-radius input[type="range"] {
+  accent-color: var(--ce-accent) !important;
+  cursor: pointer !important;
+  height: 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--ce-border) !important;
+  border: none !important;
+  border-radius: 4px !important;
+  width: 100% !important;
+}
+
+/* Fetch count dropdown */
+#ce-fetch-count { min-width: 0 !important; }
+#ce-fetch-count .wrap {
+  border-radius: 999px !important;
+  background: var(--ce-card) !important;
+  border: 1px solid var(--ce-border) !important;
+  height: 44px !important;
+}
+#ce-fetch-count input {
+  background: transparent !important;
+  border: none !important;
+  height: 42px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding-left: 14px !important;
+  color: var(--ce-text) !important;
+}
+
+#ce-refresh-btn, #ce-theme-btn { border-radius: 999px !important; border: 1px solid var(--ce-border) !important; height: 44px !important; }
+#ce-refresh-btn { font-size: 13px !important; font-weight: 600 !important; white-space: nowrap !important;
+                  background: var(--ce-lilac-bg) !important; color: var(--ce-accent-ink) !important;
+                  padding: 0 16px !important; cursor: pointer !important; }
 #ce-poster-btn { border-radius: 999px !important; white-space: nowrap; background: var(--ce-peach) !important;
-                 color: #3a2a20 !important; border: none !important; font-weight: 600; }
+                 color: #3a2a20 !important; border: none !important; font-weight: 600; height: 44px !important;
+                 padding: 0 16px !important; }
 
 /* chips: each one has its own pastel colour */
 #ce-chips, #ce-chips *, #ce-sort, #ce-list-head, #ce-list-head .block {
@@ -631,13 +837,15 @@ with gr.Blocks(title=TITLE) as demo:
         # ----- main view -----
         with gr.Column() as main_view:
             with gr.Row(elem_id="ce-top"):
-                gr.HTML(LOGO_HTML, scale=0, min_width=210)
-                city = gr.Textbox(DEFAULT_CITY, show_label=False, placeholder="🔍 City", scale=3, elem_id="ce-city")
-                radius = gr.Dropdown(RADIUS_CHOICES, value=DEFAULT_RADIUS, show_label=False, scale=1, min_width=150,
-                                     elem_id="ce-radius")
-                refresh_btn = gr.Button("↻", elem_id="ce-refresh-btn", scale=0, min_width=48)
-                theme_btn = gr.Button("🌗", elem_id="ce-theme-btn", scale=0, min_width=48)
-                poster_btn = gr.Button("📷 Add from poster", elem_id="ce-poster-btn", scale=0, min_width=170)
+                gr.HTML(LOGO_HTML, scale=0, min_width=180)
+                city = gr.Textbox(DEFAULT_CITY, show_label=False, placeholder="🔍 City", scale=2, elem_id="ce-city", min_width=120)
+                radius = gr.Slider(minimum=20, maximum=2000, value=DEFAULT_RADIUS, step=20,
+                                   label="Radius (km)", show_label=True, scale=3, min_width=170, elem_id="ce-radius")
+                fetch_count = gr.Dropdown(FETCH_CHOICES, value=DEFAULT_FETCH_COUNT, show_label=False,
+                                          scale=1, min_width=140, elem_id="ce-fetch-count", visible=not PUBLIC)
+                refresh_btn = gr.Button("↻ Fetch", elem_id="ce-refresh-btn", scale=0, min_width=85, visible=not PUBLIC)
+                theme_btn = gr.Button("🌗", elem_id="ce-theme-btn", scale=0, min_width=44)
+                poster_btn = gr.Button("📷 Add from poster", elem_id="ce-poster-btn", scale=0, min_width=160)
             chip = gr.Radio(CHIPS, value="All", show_label=False, elem_id="ce-chips")
 
             with gr.Column(visible=False, elem_id="ce-poster-panel") as poster_panel:
@@ -671,7 +879,7 @@ with gr.Blocks(title=TITLE) as demo:
                             with gr.Column(elem_classes=classes):
                                 gr.HTML(f'<div class="ce-card-html">{card_html(ev)}</div>')
                                 details_btn = gr.Button("Details →", elem_classes="ce-details-btn", size="sm")
-                                details_btn.click(lambda f, i=ev["id"]: open_details(i, f), found_state,
+                                details_btn.click(make_opener(ev["id"]), found_state,
                                                   [main_view, details_view, details_box, selected_state])
                         if len(found) > MAX_CARDS:
                             gr.Markdown(f"Showing the first {MAX_CARDS} of {len(found)} events.")
@@ -689,10 +897,14 @@ with gr.Blocks(title=TITLE) as demo:
         pin_box = gr.Textbox(elem_id="ce-pin-id", show_label=False, container=False)  # hidden, filled by map clicks
 
         # ----- wiring -----
-        list_inputs = [city, radius, chip, sort]
+        list_inputs = [city, radius, chip, sort, fetch_count]
         list_outputs = [map_box, found_state, count]
-        for trigger in (city.submit, radius.change, chip.change, sort.change):
-            trigger(show_events, list_inputs, list_outputs)
+        city.submit(show_events, list_inputs, list_outputs)
+        radius.release(show_events, list_inputs, list_outputs)
+        radius.change(show_events, list_inputs, list_outputs)
+        chip.change(show_events, list_inputs, list_outputs)
+        sort.change(show_events, list_inputs, list_outputs)
+        fetch_count.change(refresh, list_inputs, list_outputs)
         refresh_btn.click(refresh, list_inputs, list_outputs)
         back_btn.click(back_to_events, None, [main_view, details_view])
         chat_q.submit(ask_about_event, [chat_q, chat_box, selected_state], [chat_q, chat_box])
@@ -739,5 +951,9 @@ if __name__ == "__main__":
     if lan:
         print(f"On the same Wi-Fi, open: http://{lan_address()}:7860")
     # share=True would put your app on the public internet. Do not.
-    demo.launch(share=False, server_name="0.0.0.0" if lan else None, server_port=7860,
-                css=CSS, theme=gr.themes.Base())
+    if PUBLIC:
+        events.start_auto_refresh(AUTO_REFRESH_HOURS)
+    demo.queue(max_size=40)      # extra visitors wait in line instead of overloading the app
+    demo.launch(share=False, server_name="0.0.0.0" if lan else None,
+                server_port=int(os.environ.get("GRADIO_SERVER_PORT", 7860)),
+                css=CSS, theme=gr.themes.Base(), max_file_size="8mb", ssr_mode=False)

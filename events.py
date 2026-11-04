@@ -7,6 +7,8 @@ import json
 import math
 import os
 import re
+import shutil
+import threading
 import time
 from datetime import date, datetime
 
@@ -19,9 +21,17 @@ GEMMA_SUMMARY_LIMIT = 0    # new Gemma summaries per refresh; the rest are made 
 HTTP_TIMEOUT = 40          # seconds to wait for each API before giving up
 
 # ---- Fixed values ----------------------------------------------------------
-EVENTS_FILE = os.path.join(HERE, "events.json")
-GEOCACHE_FILE = os.path.join(HERE, "geocache.json")
-SUMMARY_CACHE_FILE = os.path.join(HERE, "summary_cache.json")
+# Where the data files live. A website can point this at persistent storage.
+DATA_DIR = os.environ.get("HACKFINDR_DATA_DIR") or HERE
+os.makedirs(DATA_DIR, exist_ok=True)
+for _name in ("events.json", "geocache.json", "summary_cache.json"):   # first run: start from the repo's data
+    if not os.path.exists(os.path.join(DATA_DIR, _name)) and os.path.exists(os.path.join(HERE, _name)):
+        shutil.copy(os.path.join(HERE, _name), DATA_DIR)
+EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
+GEOCACHE_FILE = os.path.join(DATA_DIR, "geocache.json")
+SUMMARY_CACHE_FILE = os.path.join(DATA_DIR, "summary_cache.json")
+_file_lock = threading.RLock()      # many visitors at once must not write a file at the same time
+_geocode_lock = threading.Lock()
 UNSTOP_URL = "https://unstop.com/api/public/opportunity/search-result"
 # Unstop category -> (our event type, how many pages of 100 to fetch)
 UNSTOP_CATEGORIES = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 1),
@@ -33,15 +43,20 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (hackfindr student project)"}
 
 # ---------- small helpers ----------
 def load_json(path, default):
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
+    with _file_lock:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
     return default
 
 
 def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    """Write to a temporary file, then swap it in, so a crash can never leave half a file."""
+    with _file_lock:
+        temp = path + ".tmp"
+        with open(temp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(temp, path)
 
 
 def parse_json(text):
@@ -75,19 +90,20 @@ _last_geocode = 0.0
 
 def geocode(place):
     """City name -> (lat, lon) or (None, None). Cached in geocache.json."""
-    if not place:
+    if not place or not str(place).strip():
         return None, None
-    key = place.strip().lower()
+    key = str(place).strip().lower()
     if key in _geocache:
         return tuple(_geocache[key]) if _geocache[key] else (None, None)
     global _last_geocode
     try:
         from geopy.geocoders import Nominatim
-        wait = 1.0 - (time.time() - _last_geocode)   # Nominatim rule: max 1 req/sec
-        if wait > 0:
-            time.sleep(wait)
-        _last_geocode = time.time()
-        loc = Nominatim(user_agent="hackfindr").geocode(place, timeout=10)
+        with _geocode_lock:                              # one lookup at a time, even with many visitors
+            wait = 1.0 - (time.time() - _last_geocode)   # Nominatim rule: max 1 req/sec
+            if wait > 0:
+                time.sleep(wait)
+            _last_geocode = time.time()
+            loc = Nominatim(user_agent="hackfindr").geocode(place, timeout=10)
         _geocache[key] = [loc.latitude, loc.longitude] if loc else None
     except Exception as e:
         print("geocode failed for", place, "->", e)
@@ -124,17 +140,38 @@ def get_unstop_page(params):
     return None
 
 
-def fetch_unstop():
+def fetch_unstop(limit=None):
     events = []
-    for category, (event_type, pages) in UNSTOP_CATEGORIES.items():
+    cats = UNSTOP_CATEGORIES
+    if limit is not None:
+        try:
+            lim = int(limit)
+            if lim <= 50:
+                cats = {"hackathons": ("hackathon", 1)}
+            elif lim <= 100:
+                cats = {"hackathons": ("hackathon", 1), "workshops": ("workshop", 1)}
+            elif lim <= 250:
+                cats = {"hackathons": ("hackathon", 2), "workshops": ("workshop", 1), "competitions": ("competition", 2)}
+            elif lim <= 500:
+                cats = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 2), "conferences": ("conference", 1), "competitions": ("competition", 5)}
+            else:
+                cats = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 2), "conferences": ("conference", 1), "competitions": ("competition", 8)}
+        except (ValueError, TypeError):
+            cats = UNSTOP_CATEGORIES
+
+    for category, (event_type, pages) in cats.items():
         for page in range(1, pages + 1):
             params = {"opportunity": category, "oppstatus": "open", "per_page": 100, "page": page}
             items = get_unstop_page(params)
             if items is None:          # keep the pages we already have
                 break
             events += unstop_events(items, event_type)
+            if limit and len(events) >= int(limit):
+                break
             if len(items) < 100:      # last page reached
                 break
+        if limit and len(events) >= int(limit):
+            break
     if not events:
         raise RuntimeError("Unstop sent no events")
     return events
@@ -165,6 +202,7 @@ def unstop_events(items, event_type):
             "description": "",
             "eligibility": "",
             "requirements": team,
+            "team_size": team.replace("Team size ", ""),   # kept apart: the AI summary replaces requirements
             "register_url": unstop_link(it.get("seo_url") or ""),
             "poster_url": it.get("logoUrl2") or "",
             "source": "unstop",
@@ -185,13 +223,26 @@ def devpost_end(dates):
         return ""
 
 
-def fetch_devpost():
+def fetch_devpost(limit=None):
     items = []
-    for page in range(1, DEVPOST_PAGES + 1):
+    pages = DEVPOST_PAGES
+    if limit is not None:
+        try:
+            pages = max(1, min(15, int(limit) // 20))
+        except (ValueError, TypeError):
+            pages = DEVPOST_PAGES
+    for page in range(1, pages + 1):
         params = {"status[]": ["upcoming", "open"], "page": page}
-        r = requests.get(DEVPOST_URL, params=params, headers=HEADERS, timeout=HTTP_TIMEOUT)
-        r.raise_for_status()
-        items += r.json().get("hackathons", [])
+        try:
+            r = requests.get(DEVPOST_URL, params=params, headers=HEADERS, timeout=HTTP_TIMEOUT)
+            r.raise_for_status()
+            batch = r.json().get("hackathons", [])
+            items += batch
+            if not batch or (limit and len(items) >= int(limit)):
+                break
+        except Exception as e:
+            print("Devpost page", page, "failed ->", e)
+            break
     events = []
     for it in items:
         loc = (it.get("displayed_location") or {}).get("location", "")
@@ -252,11 +303,12 @@ def summarize_one(ev):
         cache[ev["id"]] = parse_json(gemma_client.ask(SUMMARY_PROMPT + ev["details_text"]))
         save_json(SUMMARY_CACHE_FILE, cache)
     apply_summary(ev, cache[ev["id"]])
-    events = load_events()
-    for i, saved in enumerate(events):
-        if saved["id"] == ev["id"]:
-            events[i] = {**saved, **{k: ev[k] for k in ("description", "eligibility", "requirements", "ai_summary")}}
-    save_json(EVENTS_FILE, events)
+    with _file_lock:
+        events = load_events()
+        for i, saved in enumerate(events):
+            if saved["id"] == ev["id"]:
+                events[i] = {**saved, **{k: ev[k] for k in ("description", "eligibility", "requirements", "ai_summary")}}
+        save_json(EVENTS_FILE, events)
     return ev
 
 
@@ -308,10 +360,10 @@ def is_over(ev):
     return any(e and e < today for e in ends)
 
 
-def refresh_events():
+def refresh_events(limit=None):
     """Fetch live data; on any failure, fall back to the saved events.json."""
     events, saved = [], load_events()
-    for source, fetch in (("unstop", fetch_unstop), ("devpost", fetch_devpost)):
+    for source, fetch in (("unstop", lambda: fetch_unstop(limit)), ("devpost", lambda: fetch_devpost(limit))):
         try:
             events += fetch()
         except Exception as e:     # one failing source should not lose its events
@@ -320,27 +372,47 @@ def refresh_events():
     if not events:
         print("Live fetch failed, using saved events.json")
         return load_events()
-    events = list({ev["id"]: ev for ev in events}.values())   # same event in two categories -> keep one
+    by_id = {ev["id"]: ev for ev in saved}
+    for ev in events:
+        by_id[ev["id"]] = ev
+    events = list(by_id.values())
     for ev in events:                # saved Devpost events from older runs may lack the end date
         if ev["source"] == "devpost" and not ev.get("end"):
             ev["end"] = devpost_end(ev.get("start", ""))
     events = [ev for ev in events if not is_over(ev)]
     events = add_coords(summarize_details(events))
     # keep events added from posters across refreshes
-    events += [e for e in load_events() if e.get("source") == "poster"]
-    save_json(EVENTS_FILE, events)
+    with _file_lock:                 # re-read, so a poster added during this long fetch is not lost
+        ids = {e["id"] for e in events}
+        events += [e for e in load_events() if e.get("source") == "poster" and e["id"] not in ids]
+        save_json(EVENTS_FILE, events)
     return events
 
 
+def start_auto_refresh(hours=6):
+    """Website mode: fetch new events in the background, so visitors never have to."""
+    def loop():
+        while True:
+            age = time.time() - os.path.getmtime(EVENTS_FILE) if os.path.exists(EVENTS_FILE) else hours * 3600
+            time.sleep(max(60, hours * 3600 - age))
+            try:
+                refresh_events()
+            except Exception as e:
+                print("Auto refresh failed ->", e)
+    threading.Thread(target=loop, daemon=True).start()
+
+
 def load_events():
-    return load_json(EVENTS_FILE, [])
+    """Saved events, leaving out any that have ended since the last refresh."""
+    return [ev for ev in load_json(EVENTS_FILE, []) if not is_over(ev)]
 
 
 def add_event(ev):
     """Append one event (e.g. from a poster) to events.json and return it."""
-    events = load_events()
-    events.append(ev)
-    save_json(EVENTS_FILE, events)
+    with _file_lock:
+        events = load_events()
+        events = [e for e in events if e["id"] != ev["id"]] + [ev]   # same poster twice -> keep one
+        save_json(EVENTS_FILE, events)
     return ev
 
 

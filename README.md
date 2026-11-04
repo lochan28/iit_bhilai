@@ -1,3 +1,17 @@
+---
+title: HackFindr
+emoji: 🎓
+colorFrom: purple
+colorTo: pink
+sdk: gradio
+sdk_version: 6.30.0
+python_version: "3.12"
+app_file: app.py
+pinned: false
+license: mit
+short_description: Find student events near you with Gemma 4
+---
+
 # HackFindr: built with Gemma 4
 
 HackFindr finds upcoming student events (hackathons, ideathons, webinars, workshops, competitions, conferences)
@@ -19,12 +33,17 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env            # then put your GEMINI_API_KEY in .env
 python events.py                  # optional: fetch fresh events into events.json
-python app_template/app.py        # open http://127.0.0.1:7860
+python app.py                     # open http://127.0.0.1:7860
 ```
-To open it from a phone or laptop on the same Wi-Fi, start it with `python app_template/app.py --lan`
+To open it from a phone or laptop on the same Wi-Fi, start it with `python app.py --lan`
 and open the second address it prints (like `http://10.50.33.81:7860`). Allow Python through the Windows firewall if asked.
 
 If the internet or an API is down, the app uses the saved `events.json` (offline demo mode).
+
+## Website mode
+Set `HACKFINDR_PUBLIC=1` (and `GEMINI_API_KEY` as a secret) on the host. This hides manual fetching, refreshes
+events in the background every 6 hours, and limits Gemma use per visitor and per day. Set `HACKFINDR_DATA_DIR` to
+a persistent folder if the host has one; otherwise new summaries and poster events reset when the server restarts.
 
 ## How it works
 | File | What it does |

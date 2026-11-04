@@ -5,3 +5,5 @@ __pycache__/
 notes/
 wheelhouse/
 .pytest_cache/
+events_backup.json
+*.tmp

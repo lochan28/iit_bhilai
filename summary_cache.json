@@ -688,5 +688,20 @@
     "description": "Startup Confluence 2.0 is a two-day event that provides a platform for students to pitch innovative ideas to investors and industry experts. It offers unique opportunities for networking, learning about entrepreneurship, and accessing incubation support at the United Incubation Hub.",
     "eligibility": "Students from all years and disciplines, as well as registered startups and companies.",
     "requirements": "An innovative startup idea (for students) or an existing business (for companies); prize winners must agree to form a company and undergo incubation at UIH."
+  },
+  "unstop-779ecc60": {
+    "description": "This hands-on workshop teaches you how to integrate AI into every stage of filmmaking, from scriptwriting to post-production. You will gain practical experience with industry tools like Midjourney and Runway to create your own AI-driven short film.",
+    "eligibility": "Students from any academic stream, filmmakers, creators, and AI enthusiasts of all expertise levels.",
+    "requirements": "No prior expertise required; suitable for all skill levels."
+  },
+  "unstop-fc12a55b": {
+    "description": "Fr.CRCE Shark Tank is an entrepreneurship competition where students pitch business ideas in a mock investment simulation. Participants will face real-world investor questions, negotiate equity, and defend their business models to compete for a ₹60,000 prize pool.",
+    "eligibility": "All undergraduate college students (excluding Fr.CRCE students).",
+    "requirements": "Teams of 2-4 members, ₹149 registration fee, formal/product-themed attire, and a pitch deck."
+  },
+  "unstop-01c217a7": {
+    "description": "This one-day, in-person workshop at IIT Bombay provides a comprehensive introduction to cybersecurity, covering topics from networking basics and Splunk analysis to data protection laws. Students will engage in hands-on labs and a live, team-based cyberattack response exercise to gain practical experience. It is an ideal opportunity for students of all backgrounds to explore the field and earn a certificate of participation.",
+    "eligibility": "All undergraduate and postgraduate students across all specializations (technical and non-technical).",
+    "requirements": "Basic familiarity with computers; individual registration."
   }
 }
