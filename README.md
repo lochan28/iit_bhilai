@@ -1,7 +1,7 @@
 # HackFindr: built with Gemma 4
 
 HackFindr finds upcoming student events (hackathons, ideathons, webinars, workshops, competitions, conferences)
-from **Unstop** and **Devpost**, filters them by distance from your city, and shows them on a map.
+from **Unstop, Devpost, Devfolio, HackerEarth and MLH** (refreshed automatically every 6 hours), filters them by distance from your city, and shows them on a map.
 
 It is built with **Gemma 4 (`gemma-4-26b-a4b-it`) through the Gemini API** (`google-genai`). Gemma:
 - summarizes each Unstop event page into a short description, eligibility and requirements,
@@ -29,7 +29,7 @@ If the internet or an API is down, the app uses the saved `events.json` (offline
 ## How it works
 | File | What it does |
 |---|---|
-| `events.py` | fetch Unstop + Devpost, normalize to one schema, geocode cities (cached in `geocache.json`), Gemma summaries (cached in `summary_cache.json`), save `events.json` |
+| `events.py` | fetch Unstop, Devpost, Devfolio, HackerEarth, MLH (auto-refresh every `REFRESH_HOURS`), normalize to one schema, geocode cities (cached in `geocache.json`), Gemma summaries (cached in `summary_cache.json`), save `events.json` |
 | `harness/tools.py` | agent tools `search_events(city, radius_km, mode, event_type)` and `get_event_details(event_id)` |
 | `app_template/app.py` | Gradio UI: **Events Map** tab (folium map, online-events table, poster upload) and **Agent with tools** tab |
 | `gemma_client.py` | the starter's Gemma 4 helper (spacing, retries, cache) |

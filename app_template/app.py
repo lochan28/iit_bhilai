@@ -293,7 +293,8 @@ def show_events(city, radius, chip, sort):
 
 
 def refresh(city, radius, chip, sort):
-    events.refresh_events()  # live fetch; falls back to the saved events.json
+    # Events are fetched in the background every events.REFRESH_HOURS, so this only
+    # re-reads events.json (many users clicking Refresh won't hammer the event sites).
     return show_events(city, radius, chip, sort)
 
 
@@ -738,6 +739,7 @@ if __name__ == "__main__":
     print("Starting... open this address in your browser: http://127.0.0.1:7860")
     if lan:
         print(f"On the same Wi-Fi, open: http://{lan_address()}:7860")
+    events.start_auto_refresh()
     # share=True would put your app on the public internet. Do not.
     demo.launch(share=False, server_name="0.0.0.0" if lan else None, server_port=7860,
                 css=CSS, theme=gr.themes.Base())
