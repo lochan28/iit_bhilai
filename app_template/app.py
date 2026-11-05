@@ -43,7 +43,9 @@ DEFAULT_FETCH_COUNT = 100
 CHIPS = ["All", "Hackathons", "Workshops", "Free", "This week", "Open to 1st year"]
 MAX_CARDS = 100       # cards shown in the list
 PURPLE, GREEN, BLUSH = "#a597f2", "#7fd6b5", "#f7a8bc"  # pins: hackathon, workshop, "you are here"
-SOURCE_NAMES = {"unstop": "Unstop", "devpost": "Devpost", "poster": "Unverified poster", "sample": "Sample"}
+SOURCE_NAMES = {"unstop": "Unstop", "devpost": "Devpost", "devfolio": "Devfolio", "hackerearth": "HackerEarth",
+                "mlh": "MLH", "knowafest": "KnowAFest", "hack2skill": "Hack2skill", "codeforces": "Codeforces",
+                "poster": "Unverified poster", "sample": "Sample"}
 
 
 # ---------- website limits (only when PUBLIC) ----------
@@ -159,9 +161,14 @@ def pin_color(ev):
     return GREEN if ev.get("type") in ("workshop", "webinar") else PURPLE
 
 
+def place_name(ev):
+    """Where the event is held, in words."""
+    return ev.get("city") or ("Online" if ev.get("mode") == "online" else "In person, location not listed")
+
+
 def meta_line(ev):
     """City · km · date · closes in N days (each part only if we know it)."""
-    parts = [ev.get("city") or "Online"]
+    parts = [place_name(ev)]
     if ev.get("distance_km") is not None:
         parts.append(f"{ev['distance_km']} km")
     if event_date(ev):
@@ -212,7 +219,7 @@ def bullets(text):
 
 def details_html(ev, note=""):
     """The details page. Tiles and sections without data are left out."""
-    tiles = [("Date", nice_date(event_date(ev))), ("Location", ev.get("city") or "Online"),
+    tiles = [("Date", nice_date(event_date(ev))), ("Location", place_name(ev)),
              ("Registration closes", nice_date(ev.get("end"))), ("Team size", ev.get("team_size"))]
     tiles_html = "".join(f'<div class="ce-tile"><div class="ce-tile-label">{k}</div>'
                          f'<div class="ce-tile-value">{esc(v)}</div></div>' for k, v in tiles if v)
@@ -309,7 +316,8 @@ def show_events(city, radius, chip, sort, *args):
         return f"<p class='ce-error'>Could not find the city '{esc(city)}'.</p>", [], "0 events nearby"
     near = sum(1 for e in found if e.get("distance_km") is not None)
     total_db = len(events.load_events())
-    header = f"{near} nearby · {len(found) - near} online · ({total_db} total in database)"
+    online = sum(1 for e in found if e.get("mode") == "online")
+    header = f"{near} nearby · {online} online · ({total_db} total in database)"
     return map_html(lat, lon, int(radius), found), found, header
 
 

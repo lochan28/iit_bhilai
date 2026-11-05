@@ -560,5 +560,105 @@
   "ksr kalvi nagar, tamil nadu": [
     11.3639378,
     77.8354768
+  ],
+  "unc charlotte - mceniry hall room 124": null,
+  "north guwahati, assam": [
+    26.2469085,
+    91.7144048
+  ],
+  "mohali, punjab": [
+    30.6908804,
+    76.7114879
+  ],
+  "svai hub": null,
+  "irvington high school": [
+    40.7291051,
+    -74.2344366
+  ],
+  "mcvey data science building": [
+    39.5114849,
+    -84.7341639
+  ],
+  "fiji": [
+    -18.1239696,
+    179.0122737
+  ],
+  "brighton": [
+    50.8214626,
+    -0.1400561
+  ],
+  "trent university student centre": null,
+  "university of texas at austin": [
+    30.2851494,
+    -97.7339352
+  ],
+  "system hq": [
+    37.5243177,
+    -77.4686974
+  ],
+  "tum audimax": null,
+  "university of texas at dallas - ecsw": null,
+  "mixpanel hq": null,
+  "golisano college of computing @ rit": null,
+  "sunnyvale": [
+    37.3688301,
+    -122.036349
+  ],
+  "milpitas, bay area + online": null,
+  "bay area + online": null,
+  "launch fishers": [
+    39.9668264,
+    -86.008385
+  ],
+  "virginia tech - dds": null,
+  "qualcomm conference room": null,
+  "visakhapatnam, andhra pradesh": [
+    17.6935526,
+    83.2921297
+  ],
+  "bidhannagar, west bengal": [
+    22.590425,
+    88.41692
+  ],
+  "chang wat chiang mai": [
+    18.628602,
+    98.9006043
+  ],
+  "erode, tamil nadu": [
+    11.4905282,
+    77.3505274
+  ],
+  "pondicherry, puducherry": [
+    11.9340568,
+    79.8306447
+  ],
+  "coimbatore, tamil nadu": [
+    11.0018115,
+    76.9628425
+  ],
+  "madurai, tamil nadu": [
+    9.9261153,
+    78.1140983
+  ],
+  "mayiladuthruai, tamil nadu": null,
+  "tamil nadu": [
+    11.3323723,
+    78.6098639
+  ],
+  "pollachi, tamil nadu": [
+    10.6588234,
+    77.00873
+  ],
+  "kakinada, andhra pradesh": [
+    16.9437385,
+    82.2350607
+  ],
+  "sathyamangalam, erode, tamil nadu": [
+    11.5523741,
+    77.2653758
+  ],
+  "tiruchirappalli": [
+    10.8071144,
+    78.6880939
   ]
 }

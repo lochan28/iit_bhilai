@@ -703,5 +703,10 @@
     "description": "This one-day, in-person workshop at IIT Bombay provides a comprehensive introduction to cybersecurity, covering topics from networking basics and Splunk analysis to data protection laws. Students will engage in hands-on labs and a live, team-based cyberattack response exercise to gain practical experience. It is an ideal opportunity for students of all backgrounds to explore the field and earn a certificate of participation.",
     "eligibility": "All undergraduate and postgraduate students across all specializations (technical and non-technical).",
     "requirements": "Basic familiarity with computers; individual registration."
+  },
+  "knowafest-8120736f": {
+    "description": "This two-day national-level seminar explores the use of deep learning and multi-omics to identify cancer biomarkers through non-invasive liquid biopsy platforms. It focuses on advanced computational approaches for improving cancer detection methods.",
+    "eligibility": "Not specified",
+    "requirements": "Not specified"
   }
 }

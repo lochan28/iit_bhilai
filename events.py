@@ -1,4 +1,4 @@
-"""Data layer: fetch events from Unstop + Devpost, normalize, geocode, save.
+"""Data layer: fetch events from the event sites, normalize, geocode, save.
 
 Run directly to refresh events.json:  python events.py
 """
@@ -10,7 +10,7 @@ import re
 import shutil
 import threading
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 
@@ -34,14 +34,20 @@ SUMMARY_CACHE_FILE = os.path.join(DATA_DIR, "summary_cache.json")
 _file_lock = threading.RLock()      # many visitors at once must not write a file at the same time
 _geocode_lock = threading.Lock()
 UNSTOP_URL = "https://unstop.com/api/public/opportunity/search-result"
-# Unstop category -> (our event type, how many pages of 100 to fetch)
-UNSTOP_CATEGORIES = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 1),
-                     "conferences": ("conference", 1), "competitions": ("competition", 2)}
+# Unstop category -> (our event type, the most pages of 100 to fetch).
+# Order matters: an event listed in two categories keeps the first one's label.
+UNSTOP_CATEGORIES = {"hackathons": ("hackathon", 5), "workshops": ("workshop", 3), "conferences": ("conference", 2),
+                     "quizzes": ("quiz", 2), "competitions": ("competition", 12)}
 DEVPOST_URL = "https://devpost.com/api/hackathons"
 DEVPOST_PAGES = 5          # Devpost sends 9 events per page
 DEVFOLIO_URL = "https://api.devfolio.co/api/search/hackathons"
 HACKEREARTH_URL = "https://www.hackerearth.com/chrome-extension/events/"
 MLH_URL = "https://mlh.io/seasons/2027/events"
+KNOWAFEST_URL = "https://www.knowafest.com"
+KNOWAFEST_PAGES = 20       # the most list pages to read; it shows about 12 events per page
+HACK2SKILL_URL = "https://hack2skill.com/api/v1/innovator/public/event/list"
+CODEFORCES_URL = "https://codeforces.com/api/contest.list?gym=false"
+IST = timezone(timedelta(hours=5, minutes=30))     # contest times are shown as Indian dates
 HEADERS = {"User-Agent": "Mozilla/5.0 (hackfindr student project)"}
 
 
@@ -125,9 +131,10 @@ def unstop_link(seo_url):
 def guess_type(title, default):
     """Ideathons and webinars are often listed under other categories, so check the title."""
     low = title.lower()
-    for word in ("ideathon", "webinar", "workshop"):
+    for word, kind in (("ideathon", "ideathon"), ("webinar", "webinar"), ("workshop", "workshop"),
+                       ("bootcamp", "workshop")):
         if word in low:
-            return word
+            return kind
     return default
 
 
@@ -137,7 +144,7 @@ def get_unstop_page(params):
         try:
             r = requests.get(UNSTOP_URL, params=params, headers=HEADERS, timeout=HTTP_TIMEOUT)
             r.raise_for_status()
-            return r.json()["data"]["data"]
+            return r.json()["data"]
         except Exception as e:
             print("Unstop", params["opportunity"], "page", params["page"], "try", attempt, "failed ->", e)
             time.sleep(3)
@@ -159,26 +166,28 @@ def fetch_unstop(limit=None):
             elif lim <= 500:
                 cats = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 2), "conferences": ("conference", 1), "competitions": ("competition", 5)}
             else:
-                cats = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 2), "conferences": ("conference", 1), "competitions": ("competition", 8)}
+                cats = {"hackathons": ("hackathon", 3), "workshops": ("workshop", 2), "conferences": ("conference", 1), "quizzes": ("quiz", 1), "competitions": ("competition", 8)}
         except (ValueError, TypeError):
             cats = UNSTOP_CATEGORIES
 
     for category, (event_type, pages) in cats.items():
         for page in range(1, pages + 1):
             params = {"opportunity": category, "oppstatus": "open", "per_page": 100, "page": page}
-            items = get_unstop_page(params)
-            if items is None:          # keep the pages we already have
+            result = get_unstop_page(params)
+            if result is None:         # keep the pages we already have
                 break
-            events += unstop_events(items, event_type)
+            events += unstop_events(result["data"], event_type)
             if limit and len(events) >= int(limit):
                 break
-            if len(items) < 100:      # last page reached
+            if page >= (result.get("last_page") or 1):   # a page can hold under 100 events and still not be the last
                 break
+            time.sleep(1)              # Unstop drops connections if asked too quickly
         if limit and len(events) >= int(limit):
             break
     if not events:
         raise RuntimeError("Unstop sent no events")
-    return events
+    # Many hackathons are also listed under competitions: keep the first, more specific label.
+    return list({ev["id"]: ev for ev in reversed(events)}.values())[::-1]
 
 
 def unstop_events(items, event_type):
@@ -277,34 +286,41 @@ def fetch_devpost(limit=None):
 
 
 # ---------- Devfolio (Indian hackathons) ----------
+def devfolio_event(it):
+    """Turn one raw Devfolio hackathon into our event schema."""
+    online = bool(it.get("is_online"))
+    city = ", ".join(x for x in [it.get("city"), it.get("state")] if x) or it.get("location") or ""
+    slug = it.get("slug", "")
+    setting = it.get("hackathon_setting") or {}
+    size = f"{it.get('team_min') or 1}-{it['team_size']}" if it.get("team_size") else ""
+    return {
+        "id": make_id("devfolio", slug or it.get("name")),
+        "title": it.get("name", ""),
+        "organiser": "",
+        "type": guess_type(it.get("name", ""), "hackathon"),
+        "mode": "online" if online else "offline",
+        "city": "" if online else city,
+        "start": (it.get("starts_at") or "")[:10],
+        "end": (setting.get("reg_ends_at") or it.get("ends_at") or "")[:10],   # when registration closes
+        "description": it.get("tagline") or "",
+        "eligibility": "",
+        "requirements": f"Team size {size}" if size else "",
+        "team_size": size,
+        "register_url": f"https://{slug}.devfolio.co" if slug else "https://devfolio.co/hackathons",
+        "event_end": (it.get("ends_at") or "")[:10],
+        "is_free": None,
+        "poster_url": setting.get("logo") or "",
+        "source": "devfolio",
+    }
+
+
 def fetch_devfolio():
-    body = {"type": "application_open", "from": 0, "size": 30}
-    r = requests.post(DEVFOLIO_URL, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT)
-    r.raise_for_status()
     events = []
-    for hit in r.json().get("hits", {}).get("hits", []):
-        it = hit.get("_source", {})
-        online = bool(it.get("is_online"))
-        city = ", ".join(x for x in [it.get("city"), it.get("state")] if x) or it.get("location") or ""
-        slug = it.get("slug", "")
-        events.append({
-            "id": make_id("devfolio", slug or it.get("name")),
-            "title": it.get("name", ""),
-            "organiser": "",
-            "type": guess_type(it.get("name", ""), "hackathon"),
-            "mode": "online" if online or not city else "offline",
-            "city": "" if online else city,
-            "start": (it.get("starts_at") or "")[:10],
-            "end": (it.get("ends_at") or "")[:10],
-            "description": it.get("tagline") or "",
-            "eligibility": "",
-            "requirements": "",
-            "register_url": f"https://{slug}.devfolio.co" if slug else "https://devfolio.co/hackathons",
-            "event_end": (it.get("ends_at") or "")[:10],
-            "is_free": None,
-            "poster_url": (it.get("hackathon_setting") or {}).get("logo") or "",
-            "source": "devfolio",
-        })
+    for kind in ("application_open", "upcoming"):      # registration open now, or opening soon
+        body = {"type": kind, "from": 0, "size": 100}
+        r = requests.post(DEVFOLIO_URL, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+        events += [devfolio_event(hit.get("_source", {})) for hit in r.json().get("hits", {}).get("hits", [])]
     return events
 
 
@@ -381,6 +397,163 @@ def fetch_mlh():
     return events
 
 
+# ---------- KnowAFest (Indian college events) ----------
+def knowafest_slugs():
+    """The page name of every listed event, reading list pages until one shows nothing new."""
+    from bs4 import BeautifulSoup
+    slugs = []
+    for page in range(1, KNOWAFEST_PAGES + 1):
+        try:
+            r = requests.get(f"{KNOWAFEST_URL}/events", params={"page": page}, headers=HEADERS, timeout=HTTP_TIMEOUT)
+            if r.status_code == 404:   # past the last page
+                break
+            r.raise_for_status()
+        except Exception as e:
+            if not slugs:              # nothing read at all: let the saved events be used instead
+                raise
+            print("KnowAFest page", page, "failed, using the pages read so far ->", e)
+            break
+        links = BeautifulSoup(r.text, "html.parser").select("a[href*='/event/']")
+        found = {re.split("[/#?]", a["href"].split("/event/")[1])[0] for a in links}
+        new = sorted(slug for slug in found if slug and slug not in slugs)
+        if not new:
+            break
+        slugs += new
+        time.sleep(1.5)
+    return slugs
+
+
+def knowafest_data(slug):
+    """The schema.org Event block on an event's page (the data sites publish for search engines)."""
+    from bs4 import BeautifulSoup
+    r = requests.get(f"{KNOWAFEST_URL}/event/{slug}", headers=HEADERS, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    for block in BeautifulSoup(r.text, "html.parser").select('script[type="application/ld+json"]'):
+        data = json.loads(block.string or "{}")
+        if isinstance(data, dict) and data.get("@type") == "Event":
+            return data
+    return None
+
+
+def knowafest_event(slug, it):
+    """Turn one schema.org Event into our event schema."""
+    place = it.get("location") or {}
+    if isinstance(place, list):        # hybrid events list a venue and an online link
+        place = next((p for p in place if p.get("@type") == "Place"), {})
+    address = place.get("address")
+    address = address if isinstance(address, dict) else {}
+    city = ", ".join(x for x in [address.get("addressLocality"), address.get("addressRegion")] if x)
+    online = "OnlineEvent" in str(it.get("eventAttendanceMode"))
+    offers = it.get("offers") or {}
+    offer = offers[0] if isinstance(offers, list) else offers
+    price = offer.get("price")
+    images = it.get("image") or ""
+    text = " ".join(str(it.get("description") or "").split())
+    title = it.get("name", "")
+    return {
+        "id": make_id("knowafest", slug),
+        "title": title,
+        "organiser": (it.get("organizer") or {}).get("name", ""),
+        "type": guess_type(title, "hackathon" if "hackathon" in title.lower() else "conference"),
+        "mode": "online" if online else "offline",
+        "city": "" if online else city,
+        "start": it.get("startDate", ""),
+        "end": "",                         # KnowAFest only publishes the event's own dates
+        "event_end": it.get("endDate") or it.get("startDate", ""),
+        "is_free": None if price in (None, "") else float(price) == 0,
+        "description": short_text(text),
+        "details_text": text[:4000],       # lets Gemma summarize it when someone opens it
+        "eligibility": "",
+        "requirements": "",
+        "register_url": offer.get("url") or it.get("url", ""),
+        "poster_url": images[0] if isinstance(images, list) else images,
+        "source": "knowafest",
+    }
+
+
+def fetch_knowafest():
+    known = {ev["id"] for ev in load_events()}     # saved events are kept, so only open the new ones
+    events = []
+    for slug in knowafest_slugs():
+        if make_id("knowafest", slug) in known:
+            continue
+        try:
+            data = knowafest_data(slug)
+            if data and "Cancelled" not in str(data.get("eventStatus")):
+                events.append(knowafest_event(slug, data))
+        except Exception as e:             # one odd page should not lose the others
+            print("KnowAFest event skipped:", slug, "->", e)
+        time.sleep(1.5)
+    return events
+
+
+# ---------- Hack2skill (public event list) ----------
+def fetch_hack2skill():
+    r = requests.get(HACK2SKILL_URL, headers=HEADERS, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    events = []
+    for group in r.json().get("data", {}).values():    # flagship and community events
+        for it in group:
+            if not it.get("registrationEnd"):
+                continue
+            tags = it.get("tags") or {}
+            team = tags.get("teamSize") or {}
+            size = f"{team.get('min', 1)}-{team['max']}" if team.get("max") else ""
+            title = it.get("title", "")
+            events.append({
+                "id": make_id("hack2skill", it.get("eventUrl") or title),
+                "title": title,
+                "organiser": "Hack2skill",
+                "type": guess_type(title, "hackathon"),
+                # hybrid events can be joined online; the list does not say where in-person ones are held
+                "mode": "offline" if (tags.get("mode") or {}).get("value") == "IN_PERSON" else "online",
+                "city": "",
+                "start": "",               # only registration dates are published
+                "end": it["registrationEnd"],
+                "event_end": "",
+                "is_free": True if (tags.get("ticket") or {}).get("value") == "FREE" else None,
+                "description": "",
+                "eligibility": "",
+                "requirements": f"Team size {size}" if size else "",
+                "team_size": size,
+                "register_url": it.get("customEventUrl") or f"https://hack2skill.com/event/{it.get('eventUrl')}",
+                "poster_url": it.get("thumbnail") or "",
+                "source": "hack2skill",
+            })
+    return events
+
+
+# ---------- Codeforces (coding contests, official API) ----------
+def fetch_codeforces():
+    r = requests.get(CODEFORCES_URL, headers=HEADERS, timeout=HTTP_TIMEOUT)
+    r.raise_for_status()
+    events = []
+    for it in r.json().get("result", []):
+        if it.get("phase") != "BEFORE" or not it.get("startTimeSeconds"):
+            continue
+        start = datetime.fromtimestamp(it["startTimeSeconds"], IST)
+        hours = it.get("durationSeconds", 0) / 3600
+        events.append({
+            "id": make_id("codeforces", it.get("id")),
+            "title": it.get("name", ""),
+            "organiser": "Codeforces",
+            "type": "contest",
+            "mode": "online",
+            "city": "",
+            "start": start.isoformat(),
+            "end": start.isoformat(),      # you can register until it starts
+            "event_end": (start + timedelta(hours=hours)).isoformat(),
+            "is_free": True,
+            "description": f"Online coding contest on Codeforces, {hours:g} hours long.",
+            "eligibility": "",
+            "requirements": "",
+            "register_url": f"https://codeforces.com/contests/{it.get('id')}",
+            "poster_url": "",
+            "source": "codeforces",
+        })
+    return events
+
+
 # ---------- Gemma summaries of Unstop HTML (cached) ----------
 def short_text(text, limit=220):
     """First sentence or two of a long text, cut at a word boundary."""
@@ -398,8 +571,9 @@ SUMMARY_PROMPT = ("From this event description, return ONLY JSON with keys "
 def apply_summary(ev, summary):
     """Copy Gemma's summary fields onto the event and mark it as AI-summarized."""
     for k in ("description", "eligibility", "requirements"):
-        if summary.get(k):
-            ev[k] = str(summary[k])
+        value = str(summary.get(k) or "").strip()
+        if value and value.lower().rstrip(".") not in ("not specified", "not mentioned", "n/a", "none"):
+            ev[k] = value
     ev["ai_summary"] = True
 
 
@@ -475,12 +649,25 @@ SOURCES = {
     "devfolio": fetch_devfolio,
     "hackerearth": fetch_hackerearth,
     "mlh": fetch_mlh,
+    "knowafest": fetch_knowafest,
+    "hack2skill": fetch_hack2skill,
+    "codeforces": fetch_codeforces,
 }
 
 
 def same_title(title):
     """'Hack CG 2026!' and 'hack cg 2026' -> the same key, to spot one event listed on two sites."""
     return "".join(ch for ch in title.lower() if ch.isalnum())
+
+
+def one_per_event(events):
+    """Same title on two sites -> one event, so keep the first. Same title on one site -> different
+    colleges' events (five separate "Robo Soccer" competitions), so keep them all."""
+    first_site, kept = {}, []
+    for ev in events:
+        if first_site.setdefault(same_title(ev["title"]), ev["source"]) == ev["source"]:
+            kept.append(ev)
+    return kept
 
 
 def refresh_events(limit=None):
@@ -504,8 +691,7 @@ def _refresh(limit=None):
     by_id = {ev["id"]: ev for ev in saved}
     for ev in events:
         by_id[ev["id"]] = ev
-    events = list(by_id.values())
-    events = list({same_title(ev["title"]): ev for ev in reversed(events)}.values())[::-1]  # same event on two sites -> keep one
+    events = one_per_event(list(by_id.values()))
     for ev in events:                # saved Devpost events from older runs may lack the end date
         if ev["source"] == "devpost" and not ev.get("end"):
             ev["end"] = devpost_end(ev.get("start", ""))

@@ -135,7 +135,8 @@ import events  # noqa: E402
 
 def filter_events(city, radius_km=100, mode="any", event_type="any"):
     """Shared filter for the map tab and the agent.
-    Returns (city_lat, city_lon, offline events sorted by distance, online events)."""
+    Returns (city_lat, city_lon, offline events sorted by distance, events with no distance:
+    online ones, plus in-person ones whose place the source does not list)."""
     lat, lon = events.geocode(city)
     near, online = [], []
     for ev in events.load_events():
@@ -148,18 +149,20 @@ def filter_events(city, radius_km=100, mode="any", event_type="any"):
             distance = events.haversine_km(lat, lon, ev["lat"], ev["lon"])
             if distance <= radius_km:
                 near.append(dict(ev, distance_km=round(distance)))
+        elif mode == "any" and not ev.get("city"):
+            online.append(ev)
     near.sort(key=lambda e: e["distance_km"])
     return lat, lon, near, online
 
 
 @tool
 def search_events(city: str, radius_km: int = 100, mode: str = "any", event_type: str = "any"):
-    """Find upcoming student events (hackathons, ideathons, webinars, workshops, competitions, conferences) near a city. Returns id, title, city, distance, dates and register link.
+    """Find upcoming student events (hackathons, ideathons, webinars, workshops, competitions, conferences, quizzes, coding contests) near a city. Returns id, title, city, distance, dates and register link.
 
     city: the city name, for example Raipur
     radius_km: only offline events within this many km of the city are returned
     mode: online, offline or any
-    event_type: hackathon, ideathon, webinar, workshop, competition, conference or any
+    event_type: hackathon, ideathon, webinar, workshop, competition, conference, quiz, contest or any
     """
     lat, _, near, online = filter_events(city, radius_km, mode.lower(), event_type.lower())
     if lat is None:
