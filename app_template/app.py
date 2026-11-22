@@ -508,6 +508,53 @@ def ask_about_event(question, history, event_id, request: gr.Request = None):
             return
 
 
+def ask_gemma(prompt, rule):
+    """One short Gemma answer (not streamed), with the same quick 'minimal' thinking as the chat.
+    Like the chat it skips gemma_client's retries, so it tries once more if Google is busy."""
+    from google.genai import types
+    config = types.GenerateContentConfig(system_instruction=rule,
+                                         thinking_config=types.ThinkingConfig(thinking_level="minimal"))
+    for attempt in (1, 2):
+        try:
+            reply = gemma_client.get_client().models.generate_content(
+                model=gemma_client.MODEL, contents=prompt, config=config)
+            return (reply.text or "").strip()
+        except Exception as error:
+            if attempt == 2 or not gemma_client._is_busy(error):
+                raise
+            time.sleep(2)
+
+
+def event_facts(event_id):
+    """The parts of one event that Gemma needs to judge it, or None if the id is unknown."""
+    ev = next((e for e in events.load_events() if e["id"] == event_id), None)
+    keys = ("title", "type", "mode", "city", "is_free", "eligibility", "requirements", "team_size", "description")
+    return {k: ev.get(k) for k in keys} if ev else None
+
+
+FIT_RULE = ("You help a student decide if ONE event suits them. Use only the event details and what the student "
+            "says about themselves. First line: exactly 'Good fit', 'Maybe' or 'Not a fit' in bold. Then 2-3 short "
+            "bullet reasons. Then one line starting 'Tip:' on how to prepare. If a detail is missing, say so.")
+
+
+def fit_check(me, event_id, request: gr.Request = None):
+    """One Gemma call: does this event suit the student? Also returns the profile so the browser keeps it."""
+    me = str(me or "").strip()[:300]
+    if not me:
+        return "Write your year and skills first, for example “1st year CSE · Python”.", me
+    blocked = limit_message(request)
+    if blocked:
+        return blocked, me
+    facts = event_facts(event_id)
+    if facts is None:
+        return "Open an event first.", me
+    prompt = f"Event (JSON): {json.dumps(facts, ensure_ascii=False)}\nStudent: {me}"
+    try:
+        return ask_gemma(prompt, FIT_RULE), me
+    except Exception as error:
+        return gemma_client.describe_error(error), me
+
+
 def make_opener(event_id):
     """The click handler for one card's Details button."""
     def opener(found, request: gr.Request = None):
@@ -875,6 +922,14 @@ button.ce-details-btn { position: absolute !important; inset: 0; width: 100%; he
 #ce-chat .ce-chat-head span { color: var(--ce-accent-ink); }
 #ce-chat .ce-chat-head small { display: block; color: var(--ce-muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
 #ce-chat .block { border: none !important; background: transparent !important; }
+#ce-fit { border: 1px solid var(--ce-border) !important; border-radius: 18px !important; padding: 14px !important;
+          background: var(--ce-card) !important; gap: 10px !important; margin-bottom: 14px; }
+#ce-fit .ce-chat-head { font-weight: 600; font-size: 14px; }
+#ce-fit .ce-chat-head span { color: var(--ce-accent-ink); }
+#ce-fit .ce-chat-head small { display: block; color: var(--ce-muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
+#ce-fit .block { border: none !important; background: transparent !important; }
+#ce-fit-btn { border-radius: 999px !important; align-self: flex-start; }
+#ce-fit-out:empty { display: none; }
 #ce-chat-q textarea, #ce-chat-q input { border-radius: 14px !important; }
 
 /* poster panel */
@@ -956,6 +1011,7 @@ with gr.Blocks(title=TITLE) as demo:
     found_state = gr.State(FIRST_FOUND)   # the events currently shown
     selected_state = gr.State("")         # id of the last opened event
     limit_state = gr.State(PAGE)          # how many cards the list shows
+    profile = gr.BrowserState("", storage_key="hf-profile")   # "About you", remembered in this browser
 
     with gr.Column():
         # ----- main view -----
@@ -1033,6 +1089,13 @@ with gr.Blocks(title=TITLE) as demo:
                 with gr.Row(elem_id="ce-detail-actions"):
                     cal_btn = gr.DownloadButton("📅 Add to calendar", visible=False, elem_id="ce-cal", size="sm")
                     share_btn = gr.Button("🔗 Copy link", elem_id="ce-share", size="sm")
+                with gr.Column(elem_id="ce-fit"):
+                    gr.HTML('<div class="ce-chat-head"><span>✦</span> Is this for me?'
+                            '<small>Gemma compares this event with what you write about yourself.</small></div>')
+                    me_box = gr.Textbox(label="About you", placeholder="1st year B.Tech CSE · Python, ESP32, a bit of ML",
+                                        max_length=300, elem_id="ce-me")
+                    fit_btn = gr.Button("✦ Is this for me?", variant="primary", size="sm", elem_id="ce-fit-btn")
+                    fit_out = gr.Markdown(elem_id="ce-fit-out")
                 with gr.Column(elem_id="ce-chat"):
                     gr.HTML('<div class="ce-chat-head"><span>✦</span> Ask about this event'
                             '<small>Answers use only this event’s details.</small></div>')
@@ -1056,6 +1119,9 @@ with gr.Blocks(title=TITLE) as demo:
         scrim.click(back_to_events, None, [main_view, details_view])
         chat_q.submit(ask_about_event, [chat_q, chat_box, selected_state], [chat_q, chat_box])
         selected_state.change(lambda: [], None, chat_box)  # new event, fresh chat
+        fit_btn.click(fit_check, [me_box, selected_state], [fit_out, profile])
+        demo.load(lambda p: p, profile, me_box)                 # fill "About you" from last time
+        selected_state.change(lambda: "", None, fit_out)        # new event, fresh verdict
         # The day/night switch runs only in the browser and is remembered (see HEAD).
         theme_btn.click(None, js=THEME_JS)
         # a star click only needs a redraw when the Saved chip is showing
