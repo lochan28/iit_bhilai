@@ -352,6 +352,19 @@ def map_html(lat, lon, radius, found):
     # re-measure once the frame has its final size, and again whenever the frame is resized
     refit = f"{m.get_name()}.invalidateSize(); {m.get_name()}.fitBounds({json.dumps(bounds)});"
     clicks += f"setTimeout(() => {{ {refit} }}, 300); window.addEventListener('resize', () => {{ {refit} }});"
+    # Pointing at a card grows its pin (the page sends {hl: id}); pointing at a pin outlines its card.
+    # A pin hidden inside a cluster is not on the map, so it is only brought forward when it is showing.
+    lookup = ",".join(f"{json.dumps(i)}: {name}" for name, i in pins)
+    clicks += ("const PINS = {" + lookup + "};"
+               "window.addEventListener('message', e => {"
+               "  if (!e.data || !('hl' in e.data)) return;"
+               "  Object.entries(PINS).forEach(([id, p]) => p.setRadius(id === e.data.hl ? 13 : 8));"
+               "  const p = PINS[e.data.hl]; if (p && p._map) p.bringToFront(); });"
+               "function hl(id, on) {"
+               "  const c = parent.document.querySelector('.ce-card-html[data-id=\"' + id + '\"]');"
+               "  if (c) c.closest('.ce-card').classList.toggle('ce-hl', on); }")
+    clicks += "".join(f"{name}.on('mouseover', () => hl({json.dumps(i)}, true));"
+                      f"{name}.on('mouseout', () => hl({json.dumps(i)}, false));" for name, i in pins)
     m.get_root().html.add_child(folium.Element(
         "<script>window.addEventListener('load', () => {"
         "function pick(id) { const box = parent.document.querySelector('#ce-pin-id textarea');"
@@ -740,6 +753,17 @@ HEAD = """<style>
     var box = document.querySelector("#ce-team textarea");
     if (a && box && box.value.trim()) a.href = "https://wa.me/?text=" + encodeURIComponent(box.value.trim());
   }, true);
+  // pointing at a card grows its pin on the map (the map lives in its own frame, so we post a message)
+  var hovered = null;
+  document.addEventListener("mouseover", function (e) {
+    var card = e.target.closest && e.target.closest(".ce-card");
+    var inner = card && card.querySelector(".ce-card-html");
+    var id = inner ? inner.dataset.id : null;
+    if (id === hovered) return;
+    hovered = id;
+    var frame = document.querySelector(".ce-map iframe");
+    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ hl: id }, "*");
+  });
   // "Closing this week" strip: a tap opens that event, the same way a map pin does
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest(".ce-dl[data-id]");
@@ -804,6 +828,7 @@ CSS = """
            font-size: 19px; line-height: 1; color: var(--ce-border-2); cursor: pointer; }
 .ce-star:hover { color: var(--ce-muted); }
 .ce-star.on { color: #f5b000; }
+.ce-card.ce-hl { border-color: var(--ce-accent) !important; box-shadow: 0 0 0 3px var(--ce-accent-bg); }
 /* closing-this-week strip */
 #ce-strip-box { padding: 0 !important; background: transparent !important; border: none !important;
                 contain: inline-size; min-width: 0 !important; max-width: 100%; }   /* scroll inside, never widen the page */
@@ -1160,7 +1185,7 @@ with gr.Blocks(title=TITLE) as demo:
                         for ev in found[:limit]:
                             classes = ["ce-card", "selected"] if ev["id"] == selected else ["ce-card"]
                             with gr.Column(elem_classes=classes):
-                                gr.HTML(f'<div class="ce-card-html">{card_html(ev)}</div>')
+                                gr.HTML(f'<div class="ce-card-html" data-id="{esc(ev["id"])}">{card_html(ev)}</div>')
                                 details_btn = gr.Button(f"Open {ev['title'][:60]}", elem_classes="ce-details-btn", size="sm")
                                 details_btn.click(make_opener(ev["id"]), found_state, opens)
                         if len(found) > limit:
