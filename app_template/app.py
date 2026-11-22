@@ -13,6 +13,7 @@ import html
 import json
 import os
 import re
+import tempfile
 import time
 from collections import defaultdict
 from datetime import date
@@ -372,12 +373,35 @@ def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, saved="[]
     return show_events(city, radius, chip, sort, fetch_count, saved)
 
 
+def ics_file(ev):
+    """A tiny calendar file: the event day and the registration deadline."""
+    def clean(text):  # .ics text escapes backslashes, commas and semicolons
+        return str(text).replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;")
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HackFindr//EN"]
+    for kind, day, label in (("event", to_date(event_date(ev)), ev["title"]),
+                             ("deadline", to_date(ev.get("end")), "Registration closes: " + ev["title"])):
+        if not day:
+            continue
+        # each entry needs its own UID, or calendars merge the two when both fall on the same day
+        lines += ["BEGIN:VEVENT", f"UID:{ev['id']}-{kind}-{day:%Y%m%d}@hackfindr",
+                  f"DTSTAMP:{date.today():%Y%m%d}T000000Z", f"DTSTART;VALUE=DATE:{day:%Y%m%d}",
+                  f"SUMMARY:{clean(label)}"]
+        if safe_url(ev.get("register_url")):
+            lines.append(f"URL:{ev['register_url']}")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
+    safe_id = re.sub(r"[^A-Za-z0-9_-]", "_", str(ev["id"]))   # the id becomes part of a file name
+    path = Path(tempfile.gettempdir()) / f"hackfindr-{safe_id}.ics"
+    path.write_text("\r\n".join(lines), encoding="utf-8")
+    return str(path)
+
+
 def open_details(event_id, found, request=None):
     """Show the details view for one event."""
     ev = next((e for e in found if e["id"] == event_id), None)
     ev = ev or next((e for e in events.load_events() if e["id"] == event_id), None)
     if ev is None:
-        return gr.update(), gr.update(), "<p class='ce-error'>Event not found.</p>", event_id
+        return gr.update(), gr.update(), "<p class='ce-error'>Event not found.</p>", event_id, gr.update()
     note = ""
     if not ev.get("ai_summary") and ev.get("details_text"):
         blocked = limit_message(request)
@@ -391,13 +415,15 @@ def open_details(event_id, found, request=None):
         except Exception as error:
             note = f"<p class='ce-caption'>AI summary not available right now: {esc(gemma_client.describe_error(error))}</p>"
     # the list stays where it was underneath; the details panel opens over it
-    return gr.update(), gr.update(visible=True), details_html(ev, note), event_id
+    has_dates = bool(to_date(event_date(ev)) or to_date(ev.get("end")))
+    cal = gr.update(value=ics_file(ev) if has_dates else None, visible=has_dates)
+    return gr.update(), gr.update(visible=True), details_html(ev, note), event_id, cal
 
 
 def open_from_pin(value, found, request: gr.Request = None):
     """A map pin was clicked: the hidden box holds 'event_id|time'."""
     if not value:
-        return gr.update(), gr.update(), gr.update(), gr.update()
+        return (gr.update(),) * 5
     return open_details(value.split("|")[0], found, request)
 
 
@@ -623,6 +649,9 @@ CSS = """
            font-size: 19px; line-height: 1; color: var(--ce-border-2); cursor: pointer; }
 .ce-star:hover { color: var(--ce-muted); }
 .ce-star.on { color: #f5b000; }
+/* calendar + share buttons in the details panel */
+#ce-detail-actions { gap: 8px; margin: 4px 0 12px; }
+#ce-detail-actions button, #ce-detail-actions a { border-radius: 999px !important; }
 * { scrollbar-width: thin; scrollbar-color: var(--ce-border-2) transparent; }
 .ce-hidden-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
@@ -930,8 +959,7 @@ with gr.Blocks(title=TITLE) as demo:
                             with gr.Column(elem_classes=classes):
                                 gr.HTML(f'<div class="ce-card-html">{card_html(ev)}</div>')
                                 details_btn = gr.Button(f"Open {ev['title'][:60]}", elem_classes="ce-details-btn", size="sm")
-                                details_btn.click(make_opener(ev["id"]), found_state,
-                                                  [main_view, details_view, details_box, selected_state])
+                                details_btn.click(make_opener(ev["id"]), found_state, opens)
                         if len(found) > limit:
                             more_btn = gr.Button(f"Show {min(PAGE, len(found) - limit)} more", elem_id="ce-more")
                             more_btn.click(lambda n: n + PAGE, limit_state, limit_state)
@@ -950,6 +978,8 @@ with gr.Blocks(title=TITLE) as demo:
             with gr.Column(elem_id="ce-panel"):
                 back_btn = gr.Button("← Back to events", elem_id="ce-back", size="sm")
                 details_box = gr.HTML()
+                with gr.Row(elem_id="ce-detail-actions"):
+                    cal_btn = gr.DownloadButton("📅 Add to calendar", visible=False, elem_id="ce-cal", size="sm")
                 with gr.Column(elem_id="ce-chat"):
                     gr.HTML('<div class="ce-chat-head"><span>✦</span> Ask about this event'
                             '<small>Answers use only this event’s details.</small></div>')
@@ -963,6 +993,7 @@ with gr.Blocks(title=TITLE) as demo:
         # ----- wiring -----
         list_inputs = [city, radius, chip, sort, fetch_count, saved_box]
         list_outputs = [map_box, found_state, count, limit_state]
+        opens = [main_view, details_view, details_box, selected_state, cal_btn]   # everything that opens details
         city.submit(show_events, list_inputs, list_outputs)
         radius.change(show_events, list_inputs, list_outputs)
         chip.change(show_events, list_inputs, list_outputs)
@@ -979,8 +1010,7 @@ with gr.Blocks(title=TITLE) as demo:
                          list_inputs, list_outputs)
         demo.load(None, None, saved_box,
                   js="() => { try { return localStorage.getItem('hf-saved') || '[]'; } catch (e) { return '[]'; } }")
-        pin_box.change(open_from_pin, [pin_box, found_state],
-                       [main_view, details_view, details_box, selected_state])
+        pin_box.change(open_from_pin, [pin_box, found_state], opens)
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
         close_btn.click(lambda: gr.update(visible=False), None, poster_panel)
         extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes)
