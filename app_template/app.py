@@ -41,7 +41,7 @@ FETCH_CHOICES = [
     ("Fetch 1000 events", 1000),
 ]
 DEFAULT_FETCH_COUNT = 100
-CHIPS = ["All", "Hackathons", "Workshops", "Free", "This week", "Open to 1st year"]
+CHIPS = ["All", "Saved", "Hackathons", "Workshops", "Free", "This week", "Open to 1st year"]
 PAGE = 24             # cards shown at first; "Show more" adds this many again
 RADIUS_CHOICES = [("50 km", 50), ("150 km", 150), ("300 km", 300), ("600 km", 600), ("1000 km", 1000), ("2000 km", 2000)]
 # Every event type belongs to one of four colour groups, used for pins, thumbnails and labels.
@@ -121,7 +121,9 @@ def event_date(ev):
 FIRST_YEAR = re.compile(r"1st|first[- ]year|all years|any year|freshers?", re.IGNORECASE)
 
 
-def chip_match(ev, chip):
+def chip_match(ev, chip, saved=()):
+    if chip == "Saved":
+        return ev["id"] in saved
     if chip == "Hackathons":
         return ev.get("type") in ("hackathon", "ideathon")
     if chip == "Workshops":
@@ -139,10 +141,10 @@ def chip_match(ev, chip):
     return True
 
 
-def find_events(city, radius, chip, sort):
+def find_events(city, radius, chip, sort, saved=()):
     """Offline events near the city first, then online ones, filtered by the chip."""
     lat, lon, near, online = filter_events(city, int(radius))
-    found = [e for e in near + online if chip_match(e, chip)]
+    found = [e for e in near + online if chip_match(e, chip, saved)]
     if sort == "Closing soon":
         found.sort(key=lambda e: days_left(e) if days_left(e) is not None else 9999)
     return lat, lon, found
@@ -224,10 +226,11 @@ def card_html(ev):
     badge = f'<span class="ce-badge{" hot" if hot else ""}">{closes}</span>' if closes else ""
     summary = ev.get("description")
     summary_html = f'<div class="ce-summary">{esc(summary)}</div>' if summary else ""
+    star = f'<button class="ce-star" data-id="{esc(ev["id"])}" aria-label="Save this event">★</button>'
     return (f'{thumb_html(ev)}<div class="ce-card-body"><div class="ce-card-top">{type_html(ev)}{badge}</div>'
             f'<div class="ce-card-title">{esc(ev["title"])}</div>'
             f'<div class="ce-meta">{meta_line(ev, with_closes=False)}</div>{summary_html}'
-            f'<div class="ce-tags">{tags_html(ev)}</div></div><span class="ce-chev" aria-hidden="true">›</span>')
+            f'<div class="ce-tags">{tags_html(ev)}</div></div>{star}<span class="ce-chev" aria-hidden="true">›</span>')
 
 
 def bullets(text):
@@ -342,9 +345,18 @@ def map_html(lat, lon, radius, found):
 
 # ---------- what the buttons do ----------
 
-def show_events(city, radius, chip, sort, *args):
+def saved_ids(saved):
+    """The hidden #ce-saved box holds the browser's saved ids as JSON text."""
+    try:
+        ids = json.loads(saved or "[]")
+    except ValueError:
+        return set()
+    return {str(i) for i in ids} if isinstance(ids, list) else set()
+
+
+def show_events(city, radius, chip, sort, fetch_count=None, saved="[]", *args):
     """Redraw the map and the card list."""
-    lat, lon, found = find_events(city, radius, chip, sort)
+    lat, lon, found = find_events(city, radius, chip, sort, saved_ids(saved))
     if lat is None:
         return (f"<p class='ce-error'>Couldn't find the city “{esc(city)}”. Check the spelling or try a bigger city nearby.</p>",
                 [], "No events", PAGE)
@@ -353,11 +365,11 @@ def show_events(city, radius, chip, sort, *args):
     return map_html(lat, lon, int(radius), found), found, header, PAGE
 
 
-def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, *args):
+def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, saved="[]", *args):
     if not PUBLIC:   # on the website a background job fetches, so visitors cannot overload the sources
         events.refresh_events(limit=int(fetch_count))  # live fetch with selected event count
         gr.Info("Live events fetched.")
-    return show_events(city, radius, chip, sort)
+    return show_events(city, radius, chip, sort, fetch_count, saved)
 
 
 def open_details(event_id, found, request=None):
@@ -487,13 +499,13 @@ def extract_poster(image_path, request: gr.Request = None):
 
 
 def save_poster(title, ev_type, when, mode, city, eligibility, requirements, link,
-                map_city, radius, chip, sort, fetch_count=None, request: gr.Request = None):
+                map_city, radius, chip, sort, fetch_count=None, saved="[]", request: gr.Request = None):
     """Save the (possibly edited) poster event to events.json and redraw."""
     if not title.strip():
-        return "The event needs a title.", *show_events(map_city, radius, chip, sort)
+        return "The event needs a title.", *show_events(map_city, radius, chip, sort, fetch_count, saved)
     blocked = limit_message(request, "poster")
     if blocked:
-        return blocked, *show_events(map_city, radius, chip, sort)
+        return blocked, *show_events(map_city, radius, chip, sort, fetch_count, saved)
     title, city = title[:150], city[:100]
     eligibility, requirements = eligibility[:500], requirements[:500]
     ev_mode = "online" if mode.strip().lower() == "online" else "offline"
@@ -509,7 +521,7 @@ def save_poster(title, ev_type, when, mode, city, eligibility, requirements, lin
     events.add_event(ev)
     warn = "" if ev["lat"] or ev_mode == "online" else " (city not found, so no map marker)"
     return f"Added: {ev['title']} ({ev_mode}, {ev['city'] or 'no city'}){warn}", \
-        *show_events(map_city, radius, chip, sort)
+        *show_events(map_city, radius, chip, sort, fetch_count, saved)
 
 
 # ---------- look ----------
@@ -534,6 +546,26 @@ HEAD = """<style>
   function apply() { var m = saved(); if (m && document.body) document.body.classList.toggle("dark", m === "dark"); }
   document.addEventListener("DOMContentLoaded", apply);
   var n = 0, t = setInterval(function () { apply(); if (++n > 25) clearInterval(t); }, 120);  // Gradio sets its own mode while booting
+  // ---- saved events: ids live in this browser only ----
+  var KEY = "hf-saved";
+  function savedIds() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+  // fill the stars again after every redraw of the list
+  new MutationObserver(function () {
+    var ids = savedIds();
+    document.querySelectorAll(".ce-star").forEach(function (s) { s.classList.toggle("on", ids.indexOf(s.dataset.id) >= 0); });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+  // capture phase: the star wins over the card's own "open details" button
+  document.addEventListener("click", function (e) {
+    var s = e.target.closest && e.target.closest(".ce-star");
+    if (!s) return;
+    e.preventDefault(); e.stopPropagation();
+    var ids = savedIds(), id = s.dataset.id;
+    ids = ids.indexOf(id) >= 0 ? ids.filter(function (x) { return x !== id; }) : ids.concat(id);
+    try { localStorage.setItem(KEY, JSON.stringify(ids)); } catch (err) {}
+    s.classList.toggle("on", ids.indexOf(id) >= 0);
+    var box = document.querySelector("#ce-saved textarea");
+    if (box) { box.value = JSON.stringify(ids); box.dispatchEvent(new Event("input", { bubbles: true })); }
+  }, true);
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     var b = document.querySelector("#ce-back"); if (b && b.offsetParent) b.click();
@@ -586,7 +618,11 @@ CSS = """
   --layout-gap: 12px; --block-shadow: none; --shadow-drop: none; --shadow-drop-lg: none;
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
-#ce-pin-id { display: none !important; }
+#ce-pin-id, #ce-saved { display: none !important; }
+.ce-star { position: relative; z-index: 3; align-self: flex-start; border: 0; background: none; padding: 2px;
+           font-size: 19px; line-height: 1; color: var(--ce-border-2); cursor: pointer; }
+.ce-star:hover { color: var(--ce-muted); }
+.ce-star.on { color: #f5b000; }
 * { scrollbar-width: thin; scrollbar-color: var(--ce-border-2) transparent; }
 .ce-hidden-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
@@ -922,9 +958,10 @@ with gr.Blocks(title=TITLE) as demo:
                                         show_label=False, submit_btn=True, elem_id="ce-chat-q", max_length=500)
 
         pin_box = gr.Textbox(elem_id="ce-pin-id", show_label=False, container=False)  # hidden, filled by map clicks
+        saved_box = gr.Textbox("[]", elem_id="ce-saved", show_label=False, container=False)  # hidden, filled by the browser
 
         # ----- wiring -----
-        list_inputs = [city, radius, chip, sort, fetch_count]
+        list_inputs = [city, radius, chip, sort, fetch_count, saved_box]
         list_outputs = [map_box, found_state, count, limit_state]
         city.submit(show_events, list_inputs, list_outputs)
         radius.change(show_events, list_inputs, list_outputs)
@@ -937,6 +974,11 @@ with gr.Blocks(title=TITLE) as demo:
         selected_state.change(lambda: [], None, chat_box)  # new event, fresh chat
         # The day/night switch runs only in the browser and is remembered (see HEAD).
         theme_btn.click(None, js=THEME_JS)
+        # a star click only needs a redraw when the Saved chip is showing
+        saved_box.change(lambda *a: show_events(*a) if a[2] == "Saved" else (gr.skip(),) * len(list_outputs),
+                         list_inputs, list_outputs)
+        demo.load(None, None, saved_box,
+                  js="() => { try { return localStorage.getItem('hf-saved') || '[]'; } catch (e) { return '[]'; } }")
         pin_box.change(open_from_pin, [pin_box, found_state],
                        [main_view, details_view, details_box, selected_state])
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
