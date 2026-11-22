@@ -17,6 +17,7 @@ import tempfile
 import time
 from collections import defaultdict
 from datetime import date
+from urllib.parse import quote
 
 import folium
 import gradio as gr
@@ -555,6 +556,39 @@ def fit_check(me, event_id, request: gr.Request = None):
         return gemma_client.describe_error(error), me
 
 
+TEAM_RULE = ("Write a short, friendly WhatsApp message (under 70 words) from a student inviting friends to form a "
+             "team for this event. Include the name, date, team size and the register link if given. "
+             "Plain text, at most one emoji. Use only the details given.")
+
+
+def team_message(event_id, request: gr.Request = None):
+    """One Gemma call: a ready-to-send WhatsApp invite, plus an 'Open in WhatsApp' link."""
+    blocked = limit_message(request)
+    if blocked:
+        return blocked, ""
+    facts = event_facts(event_id)
+    if facts is None:
+        return "Open an event first.", ""
+    ev = next(e for e in events.load_events() if e["id"] == event_id)
+    facts.update(date=nice_date(event_date(ev)), closes=nice_date(ev.get("end")), link=safe_url(ev.get("register_url")))
+    try:
+        text = ask_gemma(json.dumps(facts, ensure_ascii=False), TEAM_RULE)
+    except Exception as error:
+        return gemma_client.describe_error(error), ""
+    if not text:
+        return "Gemma sent back no text. Press the button again.", ""
+    return text, wa_link(text)
+
+
+def wa_link(text):
+    """'Open in WhatsApp' with the message filled in. A click handler in HEAD swaps in the edited text."""
+    text = str(text or "").strip()
+    if not text:
+        return ""
+    return (f'<a class="ce-wa" href="https://wa.me/?text={quote(text)}" target="_blank" rel="noopener">'
+            f'Open in WhatsApp ↗</a>')
+
+
 def make_opener(event_id):
     """The click handler for one card's Details button."""
     def opener(found, request: gr.Request = None):
@@ -665,6 +699,12 @@ HEAD = """<style>
     s.classList.toggle("on", ids.indexOf(id) >= 0);
     var box = document.querySelector("#ce-saved textarea");
     if (box) { box.value = JSON.stringify(ids); box.dispatchEvent(new Event("input", { bubbles: true })); }
+  }, true);
+  // "Open in WhatsApp": send whatever is in the message box now, so the student's edits are kept
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a.ce-wa");
+    var box = document.querySelector("#ce-team textarea");
+    if (a && box && box.value.trim()) a.href = "https://wa.me/?text=" + encodeURIComponent(box.value.trim());
   }, true);
   // "Closing this week" strip: a tap opens that event, the same way a map pin does
   document.addEventListener("click", function (e) {
@@ -930,6 +970,16 @@ button.ce-details-btn { position: absolute !important; inset: 0; width: 100%; he
 #ce-fit .block { border: none !important; background: transparent !important; }
 #ce-fit-btn { border-radius: 999px !important; align-self: flex-start; }
 #ce-fit-out:empty { display: none; }
+#ce-team-card { border: 1px solid var(--ce-border) !important; border-radius: 18px !important; padding: 14px !important;
+                background: var(--ce-card) !important; gap: 10px !important; margin-bottom: 14px; }
+#ce-team-card .ce-chat-head { font-weight: 600; font-size: 14px; }
+#ce-team-card .ce-chat-head span { color: var(--ce-accent-ink); }
+#ce-team-card .ce-chat-head small { display: block; color: var(--ce-muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
+#ce-team-card .block { border: none !important; background: transparent !important; }
+#ce-team-btn { border-radius: 999px !important; align-self: flex-start; }
+.ce-wa { display: inline-block; background: #25d366; color: #fff !important; text-decoration: none !important;
+         font-weight: 600; font-size: 13px; border-radius: 999px; padding: 8px 16px; }
+.ce-wa:hover { filter: brightness(1.05); }
 #ce-chat-q textarea, #ce-chat-q input { border-radius: 14px !important; }
 
 /* poster panel */
@@ -1096,6 +1146,13 @@ with gr.Blocks(title=TITLE) as demo:
                                         max_length=300, elem_id="ce-me")
                     fit_btn = gr.Button("✦ Is this for me?", variant="primary", size="sm", elem_id="ce-fit-btn")
                     fit_out = gr.Markdown(elem_id="ce-fit-out")
+                with gr.Column(elem_id="ce-team-card"):
+                    gr.HTML('<div class="ce-chat-head"><span>✉</span> Find teammates'
+                            '<small>Gemma drafts a short invite you can edit, copy or send on WhatsApp.</small></div>')
+                    team_btn = gr.Button("✉ Draft a team message", size="sm", elem_id="ce-team-btn")
+                    team_text = gr.Textbox(label="Message", lines=4, buttons=["copy"], elem_id="ce-team",
+                                           interactive=True, max_length=1000)   # editable before sending
+                    team_link = gr.HTML(elem_id="ce-team-link")
                 with gr.Column(elem_id="ce-chat"):
                     gr.HTML('<div class="ce-chat-head"><span>✦</span> Ask about this event'
                             '<small>Answers use only this event’s details.</small></div>')
@@ -1122,6 +1179,8 @@ with gr.Blocks(title=TITLE) as demo:
         fit_btn.click(fit_check, [me_box, selected_state], [fit_out, profile])
         demo.load(lambda p: p, profile, me_box)                 # fill "About you" from last time
         selected_state.change(lambda: "", None, fit_out)        # new event, fresh verdict
+        team_btn.click(team_message, selected_state, [team_text, team_link])
+        selected_state.change(lambda: ("", ""), None, [team_text, team_link])   # new event, fresh message
         # The day/night switch runs only in the browser and is remembered (see HEAD).
         theme_btn.click(None, js=THEME_JS)
         # a star click only needs a redraw when the Saved chip is showing
