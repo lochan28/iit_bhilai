@@ -20,6 +20,7 @@ from datetime import date
 from urllib.parse import quote
 
 import folium
+from folium.plugins import MarkerCluster
 import gradio as gr
 
 import events
@@ -304,6 +305,8 @@ MAP_STYLE = """<style>
   .ce-tip img { width: 44px; height: 44px; flex: none; border-radius: 10px; object-fit: cover; }
   .ce-closes { color: var(--hot); font-weight: 500; }
   .leaflet-interactive { cursor: pointer; }
+  .marker-cluster, .marker-cluster div { background: rgba(109, 93, 252, .25) !important; }
+  .marker-cluster div { background: #6d5dfc !important; color: #fff !important; font-weight: 600; }
   .leaflet-bar { border: 1px solid var(--border) !important; border-radius: 12px !important; overflow: hidden;
     box-shadow: 0 6px 18px rgba(20, 16, 50, .12) !important; }
   .leaflet-bar a { background: var(--card) !important; color: var(--title) !important; border-color: var(--border) !important;
@@ -332,6 +335,9 @@ def map_html(lat, lon, radius, found):
                         fill_opacity=0.18).add_to(m)
     folium.CircleMarker([lat, lon], radius=6, color="white", weight=2.5, fill=True, fill_color=HERE, fill_opacity=1,
                         tooltip="You are here").add_to(m)
+    # close pins merge into a numbered bubble that splits apart as you zoom in
+    cluster = MarkerCluster(options={"showCoverageOnHover": False, "maxClusterRadius": 45,
+                                     "spiderfyOnMaxZoom": True}).add_to(m)
     pins = []  # (folium's JavaScript name for the pin, event id)
     for ev in found:
         if ev.get("lat") is None:
@@ -340,7 +346,7 @@ def map_html(lat, lon, radius, found):
         tip = f'<div class="ce-tip">{logo}<div><b>{esc(ev["title"])}</b>{meta_line(ev)}</div></div>'
         pin = folium.CircleMarker([ev["lat"], ev["lon"]], radius=8, color="white", weight=2.5, fill=True,
                                   fill_color=pin_color(ev), fill_opacity=1,
-                                  tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(m)
+                                  tooltip=folium.Tooltip(tip, direction="top", offset=(0, -6))).add_to(cluster)
         pins.append((pin.get_name(), ev["id"]))
     d = radius / 111  # about 111 km per degree, so the whole circle fits on screen
     bounds = [[lat - d, lon - d], [lat + d, lon + d]]
