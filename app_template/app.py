@@ -262,7 +262,8 @@ def details_html(ev, note=""):
     closes = closes_text(ev)
     org = f'<div class="ce-org">by {esc(ev["organiser"])}</div>' if ev.get("organiser") else ""
     badge = f'<span class="ce-badge">{closes}</span>' if closes else ""
-    return (f'<div class="ce-details">{thumb_html(ev, "ce-poster")}'
+    # data-id lets the browser-only "Copy link" button know which event is open (gr.State never reaches the browser)
+    return (f'<div class="ce-details" data-id="{esc(ev["id"])}">{thumb_html(ev, "ce-poster")}'
             f'<div class="ce-tags">{tags_html(ev, True)}{badge}</div>'
             f'<h2>{esc(ev["title"])}</h2>{org}<div class="ce-tiles">{tiles_html}</div>{register}{sections}{note}</div>')
 
@@ -400,8 +401,9 @@ def open_details(event_id, found, request=None):
     """Show the details view for one event."""
     ev = next((e for e in found if e["id"] == event_id), None)
     ev = ev or next((e for e in events.load_events() if e["id"] == event_id), None)
-    if ev is None:
-        return gr.update(), gr.update(), "<p class='ce-error'>Event not found.</p>", event_id, gr.update()
+    if ev is None:   # e.g. an old share link: say so in the panel, the list underneath keeps working
+        return (gr.update(), gr.update(visible=True), "<p class='ce-error'>Event not found. It may have closed.</p>",
+                event_id, gr.update(visible=False))
     note = ""
     if not ev.get("ai_summary") and ev.get("details_text"):
         blocked = limit_message(request)
@@ -425,6 +427,14 @@ def open_from_pin(value, found, request: gr.Request = None):
     if not value:
         return (gr.update(),) * 5
     return open_details(value.split("|")[0], found, request)
+
+
+def open_from_link(found, request: gr.Request = None):
+    """Opening /?event=<id> goes straight to that event's details."""
+    event_id = request.query_params.get("event", "") if request else ""
+    if not event_id:
+        return (gr.update(),) * 5          # same length as the "opens" outputs list
+    return open_details(event_id[:100], found, request)
 
 
 def ask_about_event(question, history, event_id, request: gr.Request = None):
@@ -980,6 +990,7 @@ with gr.Blocks(title=TITLE) as demo:
                 details_box = gr.HTML()
                 with gr.Row(elem_id="ce-detail-actions"):
                     cal_btn = gr.DownloadButton("📅 Add to calendar", visible=False, elem_id="ce-cal", size="sm")
+                    share_btn = gr.Button("🔗 Copy link", elem_id="ce-share", size="sm")
                 with gr.Column(elem_id="ce-chat"):
                     gr.HTML('<div class="ce-chat-head"><span>✦</span> Ask about this event'
                             '<small>Answers use only this event’s details.</small></div>')
@@ -1011,6 +1022,17 @@ with gr.Blocks(title=TITLE) as demo:
         demo.load(None, None, saved_box,
                   js="() => { try { return localStorage.getItem('hf-saved') || '[]'; } catch (e) { return '[]'; } }")
         pin_box.change(open_from_pin, [pin_box, found_state], opens)
+        share_btn.click(None, None, None, js="""() => {
+          const open = document.querySelector("#ce-drawer .ce-details[data-id]");
+          if (!open) return;
+          const id = open.dataset.id;
+          const url = location.origin + location.pathname + "?event=" + encodeURIComponent(id);
+          const done = () => { const b = document.querySelector("#ce-share"); if (b) { const t = b.innerText;
+            b.innerText = "✓ Link copied"; setTimeout(() => b.innerText = t, 1500); } };
+          if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, () => prompt("Copy this link", url));
+          else prompt("Copy this link", url);
+        }""")
+        demo.load(open_from_link, found_state, opens)
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
         close_btn.click(lambda: gr.update(visible=False), None, poster_panel)
         extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes)
