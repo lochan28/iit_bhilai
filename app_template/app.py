@@ -142,10 +142,14 @@ def chip_match(ev, chip, saved=()):
     return True
 
 
-def find_events(city, radius, chip, sort, saved=()):
-    """Offline events near the city first, then online ones, filtered by the chip."""
+def find_events(city, radius, chip, sort, saved=(), query=""):
+    """Offline events near the city first, then online ones, filtered by the chip and the title search."""
     lat, lon, near, online = filter_events(city, int(radius))
     found = [e for e in near + online if chip_match(e, chip, saved)]
+    words = str(query or "").lower().split()
+    if words:   # every word must appear in the title or organiser
+        text = lambda e: (str(e.get("title") or "") + " " + str(e.get("organiser") or "")).lower()
+        found = [e for e in found if all(w in text(e) for w in words)]
     if sort == "Closing soon":
         found.sort(key=lambda e: days_left(e) if days_left(e) is not None else 9999)
     return lat, lon, found
@@ -356,9 +360,9 @@ def saved_ids(saved):
     return {str(i) for i in ids} if isinstance(ids, list) else set()
 
 
-def show_events(city, radius, chip, sort, fetch_count=None, saved="[]", *args):
+def show_events(city, radius, chip, sort, fetch_count=None, saved="[]", query="", *args):
     """Redraw the map and the card list."""
-    lat, lon, found = find_events(city, radius, chip, sort, saved_ids(saved))
+    lat, lon, found = find_events(city, radius, chip, sort, saved_ids(saved), query)
     if lat is None:
         return (f"<p class='ce-error'>Couldn't find the city “{esc(city)}”. Check the spelling or try a bigger city nearby.</p>",
                 [], "No events", PAGE)
@@ -367,11 +371,11 @@ def show_events(city, radius, chip, sort, fetch_count=None, saved="[]", *args):
     return map_html(lat, lon, int(radius), found), found, header, PAGE
 
 
-def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, saved="[]", *args):
+def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, saved="[]", query="", *args):
     if not PUBLIC:   # on the website a background job fetches, so visitors cannot overload the sources
         events.refresh_events(limit=int(fetch_count))  # live fetch with selected event count
         gr.Info("Live events fetched.")
-    return show_events(city, radius, chip, sort, fetch_count, saved)
+    return show_events(city, radius, chip, sort, fetch_count, saved, query)
 
 
 def ics_file(ev):
@@ -535,13 +539,13 @@ def extract_poster(image_path, request: gr.Request = None):
 
 
 def save_poster(title, ev_type, when, mode, city, eligibility, requirements, link,
-                map_city, radius, chip, sort, fetch_count=None, saved="[]", request: gr.Request = None):
+                map_city, radius, chip, sort, fetch_count=None, saved="[]", query="", request: gr.Request = None):
     """Save the (possibly edited) poster event to events.json and redraw."""
     if not title.strip():
-        return "The event needs a title.", *show_events(map_city, radius, chip, sort, fetch_count, saved)
+        return "The event needs a title.", *show_events(map_city, radius, chip, sort, fetch_count, saved, query)
     blocked = limit_message(request, "poster")
     if blocked:
-        return blocked, *show_events(map_city, radius, chip, sort, fetch_count, saved)
+        return blocked, *show_events(map_city, radius, chip, sort, fetch_count, saved, query)
     title, city = title[:150], city[:100]
     eligibility, requirements = eligibility[:500], requirements[:500]
     ev_mode = "online" if mode.strip().lower() == "online" else "offline"
@@ -557,7 +561,7 @@ def save_poster(title, ev_type, when, mode, city, eligibility, requirements, lin
     events.add_event(ev)
     warn = "" if ev["lat"] or ev_mode == "online" else " (city not found, so no map marker)"
     return f"Added: {ev['title']} ({ev_mode}, {ev['city'] or 'no city'}){warn}", \
-        *show_events(map_city, radius, chip, sort, fetch_count, saved)
+        *show_events(map_city, radius, chip, sort, fetch_count, saved, query)
 
 
 # ---------- look ----------
@@ -659,6 +663,10 @@ CSS = """
            font-size: 19px; line-height: 1; color: var(--ce-border-2); cursor: pointer; }
 .ce-star:hover { color: var(--ce-muted); }
 .ce-star.on { color: #f5b000; }
+/* title search above the list */
+#ce-q { margin-bottom: 8px; }
+#ce-q input, #ce-q textarea { border-radius: 999px !important; height: 40px !important; padding: 9px 16px !important;
+                              background: var(--ce-card) !important; border: 1px solid var(--ce-border) !important; resize: none; }
 /* calendar + share buttons in the details panel */
 #ce-detail-actions { gap: 8px; margin: 4px 0 12px; }
 #ce-detail-actions button, #ce-detail-actions a { border-radius: 999px !important; }
@@ -955,6 +963,8 @@ with gr.Blocks(title=TITLE) as demo:
                 with gr.Column(scale=7, elem_id="ce-map-col", min_width=0):
                     map_box = gr.HTML(FIRST_MAP)
                 with gr.Column(scale=5, elem_id="ce-list-col", min_width=320):
+                    q = gr.Textbox(placeholder="Search titles, e.g. AI or IIT", show_label=False,
+                                   container=False, elem_id="ce-q", max_length=80)
                     with gr.Row(elem_id="ce-list-head"):
                         count = gr.Markdown(FIRST_COUNT, elem_id="ce-count")
                         sort = gr.Radio(["Nearest", "Closing soon"], value="Nearest", show_label=False,
@@ -1002,7 +1012,7 @@ with gr.Blocks(title=TITLE) as demo:
         saved_box = gr.Textbox("[]", elem_id="ce-saved", show_label=False, container=False)  # hidden, filled by the browser
 
         # ----- wiring -----
-        list_inputs = [city, radius, chip, sort, fetch_count, saved_box]
+        list_inputs = [city, radius, chip, sort, fetch_count, saved_box, q]
         list_outputs = [map_box, found_state, count, limit_state]
         opens = [main_view, details_view, details_box, selected_state, cal_btn]   # everything that opens details
         city.submit(show_events, list_inputs, list_outputs)
@@ -1022,6 +1032,7 @@ with gr.Blocks(title=TITLE) as demo:
         demo.load(None, None, saved_box,
                   js="() => { try { return localStorage.getItem('hf-saved') || '[]'; } catch (e) { return '[]'; } }")
         pin_box.change(open_from_pin, [pin_box, found_state], opens)
+        q.change(show_events, list_inputs, list_outputs, trigger_mode="always_last", show_progress="hidden")
         share_btn.click(None, None, None, js="""() => {
           const open = document.querySelector("#ce-drawer .ce-details[data-id]");
           if (!open) return;
