@@ -589,6 +589,40 @@ def wa_link(text):
             f'Open in WhatsApp ↗</a>')
 
 
+CMP_RULE = ("Compare TWO events for a student, using only the details given. Give a markdown table whose first "
+            "header cell is empty and whose other two header cells are the two event titles (shortened if long); "
+            "it has exactly 3 rows: Date, Who can join, Team size. Then one line starting 'Pick:' that names the "
+            "event to choose and says why. Call the events by their titles, never 'Event A' or 'Event B'. "
+            "If the student described themselves, use that.")
+
+
+def compare_choices(found, event_id):
+    """Fill 'Compare with' from the events in view, never listing the one that is open."""
+    others = [(e["title"][:60], e["id"]) for e in (found or []) if e["id"] != event_id][:60]
+    return gr.update(choices=others, value=None)
+
+
+def compare_events(a_id, b_id, me, request: gr.Request = None):
+    """One Gemma call: the open event side by side with the chosen one."""
+    if not b_id:
+        return "Pick a second event to compare with."
+    blocked = limit_message(request)
+    if blocked:
+        return blocked
+    a, b = event_facts(a_id), event_facts(b_id)
+    if not a or not b:
+        return "One of those events is gone. Refresh and try again."
+    for facts, eid in ((a, a_id), (b, b_id)):   # give Gemma the dates in plain words, like the team message
+        ev = next(e for e in events.load_events() if e["id"] == eid)
+        facts.update(date=nice_date(event_date(ev)), registration_closes=nice_date(ev.get("end")))
+    prompt = (f"Event A: {json.dumps(a, ensure_ascii=False)}\nEvent B: {json.dumps(b, ensure_ascii=False)}\n"
+              f"Student: {str(me or '')[:300]}")
+    try:
+        return ask_gemma(prompt, CMP_RULE) or "Gemma sent back no text. Press Compare again."
+    except Exception as error:
+        return gemma_client.describe_error(error)
+
+
 def make_opener(event_id):
     """The click handler for one card's Details button."""
     def opener(found, request: gr.Request = None):
@@ -980,6 +1014,17 @@ button.ce-details-btn { position: absolute !important; inset: 0; width: 100%; he
 .ce-wa { display: inline-block; background: #25d366; color: #fff !important; text-decoration: none !important;
          font-weight: 600; font-size: 13px; border-radius: 999px; padding: 8px 16px; }
 .ce-wa:hover { filter: brightness(1.05); }
+#ce-cmp-card { border: 1px solid var(--ce-border) !important; border-radius: 18px !important; padding: 14px !important;
+               background: var(--ce-card) !important; gap: 10px !important; margin-bottom: 14px; }
+#ce-cmp-card .ce-chat-head { font-weight: 600; font-size: 14px; }
+#ce-cmp-card .ce-chat-head span { color: var(--ce-accent-ink); }
+#ce-cmp-card .ce-chat-head small { display: block; color: var(--ce-muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
+#ce-cmp-card .block { border: none !important; background: transparent !important; }
+#ce-cmp-btn { border-radius: 999px !important; align-self: flex-end; }
+#ce-cmp-out:empty { display: none; }
+#ce-cmp-out table { font-size: 13px; width: 100%; }
+#ce-cmp-out th, #ce-cmp-out td { word-break: normal; overflow-wrap: break-word; }
+#ce-cmp-out td:first-child { white-space: nowrap; font-weight: 600; }
 #ce-chat-q textarea, #ce-chat-q input { border-radius: 14px !important; }
 
 /* poster panel */
@@ -1153,6 +1198,13 @@ with gr.Blocks(title=TITLE) as demo:
                     team_text = gr.Textbox(label="Message", lines=4, buttons=["copy"], elem_id="ce-team",
                                            interactive=True, max_length=1000)   # editable before sending
                     team_link = gr.HTML(elem_id="ce-team-link")
+                with gr.Column(elem_id="ce-cmp-card"):
+                    gr.HTML('<div class="ce-chat-head"><span>⇄</span> Compare with another event'
+                            '<small>Gemma puts the two side by side and says which to pick.</small></div>')
+                    with gr.Row(equal_height=True):
+                        other = gr.Dropdown(label="Compare with", choices=[], scale=3, elem_id="ce-other")
+                        cmp_btn = gr.Button("✦ Compare", scale=1, size="sm", elem_id="ce-cmp-btn", min_width=110)
+                    cmp_out = gr.Markdown(elem_id="ce-cmp-out")
                 with gr.Column(elem_id="ce-chat"):
                     gr.HTML('<div class="ce-chat-head"><span>✦</span> Ask about this event'
                             '<small>Answers use only this event’s details.</small></div>')
@@ -1181,6 +1233,9 @@ with gr.Blocks(title=TITLE) as demo:
         selected_state.change(lambda: "", None, fit_out)        # new event, fresh verdict
         team_btn.click(team_message, selected_state, [team_text, team_link])
         selected_state.change(lambda: ("", ""), None, [team_text, team_link])   # new event, fresh message
+        selected_state.change(compare_choices, [found_state, selected_state], other)
+        selected_state.change(lambda: "", None, cmp_out)                          # new event, fresh comparison
+        cmp_btn.click(compare_events, [selected_state, other, me_box], cmp_out)
         # The day/night switch runs only in the browser and is remembered (see HEAD).
         theme_btn.click(None, js=THEME_JS)
         # a star click only needs a redraw when the Saved chip is showing
