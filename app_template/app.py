@@ -238,6 +238,19 @@ def card_html(ev):
             f'<div class="ce-tags">{tags_html(ev)}</div></div>{star}<span class="ce-chev" aria-hidden="true">›</span>')
 
 
+def deadline_strip(found):
+    """Events whose registration closes within 7 days, soonest first."""
+    soon = sorted((e for e in found if days_left(e) is not None and 0 <= days_left(e) <= 7), key=days_left)[:10]
+    if not soon:
+        return ""
+    def item(e):
+        left = days_left(e)
+        when = "today" if left == 0 else f"{left}d"
+        return (f'<button class="ce-dl{" hot" if left <= 2 else ""}" data-id="{esc(e["id"])}">'
+                f'<b>{when}</b>{esc(e["title"])}</button>')
+    return f'<div class="ce-strip"><span class="ce-strip-label">Closing this week</span>{"".join(item(e) for e in soon)}</div>'
+
+
 def bullets(text):
     """Split 'a; b, c' style text into a bullet list."""
     items = [p.strip(" .") for p in re.split(r"[;\n•]|, (?=[A-Z])", str(text or "")) if p.strip(" .")]
@@ -361,14 +374,14 @@ def saved_ids(saved):
 
 
 def show_events(city, radius, chip, sort, fetch_count=None, saved="[]", query="", *args):
-    """Redraw the map and the card list."""
+    """Redraw the map, the card list and the deadline strip."""
     lat, lon, found = find_events(city, radius, chip, sort, saved_ids(saved), query)
     if lat is None:
         return (f"<p class='ce-error'>Couldn't find the city “{esc(city)}”. Check the spelling or try a bigger city nearby.</p>",
-                [], "No events", PAGE)
+                [], "No events", PAGE, "")
     near = sum(1 for e in found if e.get("distance_km") is not None)
     header = f"**{near}** nearby · **{len(found) - near}** online"
-    return map_html(lat, lon, int(radius), found), found, header, PAGE
+    return map_html(lat, lon, int(radius), found), found, header, PAGE, deadline_strip(found)
 
 
 def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, saved="[]", query="", *args):
@@ -606,6 +619,13 @@ HEAD = """<style>
     var box = document.querySelector("#ce-saved textarea");
     if (box) { box.value = JSON.stringify(ids); box.dispatchEvent(new Event("input", { bubbles: true })); }
   }, true);
+  // "Closing this week" strip: a tap opens that event, the same way a map pin does
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest(".ce-dl[data-id]");
+    if (!b) return;
+    var box = document.querySelector("#ce-pin-id textarea");
+    if (box) { box.value = b.dataset.id + "|" + Date.now(); box.dispatchEvent(new Event("input", { bubbles: true })); }
+  });
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     var b = document.querySelector("#ce-back"); if (b && b.offsetParent) b.click();
@@ -663,6 +683,17 @@ CSS = """
            font-size: 19px; line-height: 1; color: var(--ce-border-2); cursor: pointer; }
 .ce-star:hover { color: var(--ce-muted); }
 .ce-star.on { color: #f5b000; }
+/* closing-this-week strip */
+#ce-strip-box { padding: 0 !important; background: transparent !important; border: none !important;
+                contain: inline-size; min-width: 0 !important; max-width: 100%; }   /* scroll inside, never widen the page */
+.ce-strip { display: flex; gap: 8px; align-items: center; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.ce-strip-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+                  color: var(--ce-muted); white-space: nowrap; }
+.ce-dl { display: inline-flex; gap: 7px; align-items: center; white-space: nowrap; font-size: 13px; cursor: pointer;
+         background: var(--ce-card); border: 1px solid var(--ce-border); border-radius: 999px; padding: 4px 12px 4px 4px;
+         color: var(--ce-text); max-width: 280px; overflow: hidden; text-overflow: ellipsis; flex: none; }
+.ce-dl b { font: 600 11px ui-monospace, monospace; padding: 2px 7px; border-radius: 999px; background: var(--ce-inner); color: var(--ce-muted); }
+.ce-dl.hot b { background: var(--ce-hot-bg); color: var(--ce-hot); }
 /* title search above the list */
 #ce-q { margin-bottom: 8px; }
 #ce-q input, #ce-q textarea { border-radius: 999px !important; height: 40px !important; padding: 9px 16px !important;
@@ -919,7 +950,7 @@ button.ce-details-btn { position: absolute !important; inset: 0; width: 100%; he
 # ---------- layout ----------
 
 # The first map and list are built once at startup, so the page never opens empty.
-FIRST_MAP, FIRST_FOUND, FIRST_COUNT, _ = show_events(DEFAULT_CITY, DEFAULT_RADIUS, "All", "Nearest")
+FIRST_MAP, FIRST_FOUND, FIRST_COUNT, _, FIRST_STRIP = show_events(DEFAULT_CITY, DEFAULT_RADIUS, "All", "Nearest")
 
 with gr.Blocks(title=TITLE) as demo:
     found_state = gr.State(FIRST_FOUND)   # the events currently shown
@@ -940,6 +971,7 @@ with gr.Blocks(title=TITLE) as demo:
                     theme_btn = gr.Button("Switch day or night", elem_id="ce-theme-btn", scale=0, min_width=42)
                     poster_btn = gr.Button("+ Add from poster", elem_id="ce-poster-btn", scale=0, min_width=150)
                 chip = gr.Radio(CHIPS, value="All", show_label=False, elem_id="ce-chips", container=False)
+                strip_box = gr.HTML(FIRST_STRIP, elem_id="ce-strip-box")
 
             with gr.Column(visible=False, elem_id="ce-poster-panel") as poster_panel:
                 with gr.Row(equal_height=False):
@@ -1013,7 +1045,7 @@ with gr.Blocks(title=TITLE) as demo:
 
         # ----- wiring -----
         list_inputs = [city, radius, chip, sort, fetch_count, saved_box, q]
-        list_outputs = [map_box, found_state, count, limit_state]
+        list_outputs = [map_box, found_state, count, limit_state, strip_box]
         opens = [main_view, details_view, details_box, selected_state, cal_btn]   # everything that opens details
         city.submit(show_events, list_inputs, list_outputs)
         radius.change(show_events, list_inputs, list_outputs)
