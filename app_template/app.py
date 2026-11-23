@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so we can imp
 
 import html
 import json
+import math
 import os
 import re
 import tempfile
@@ -434,6 +435,22 @@ def ics_file(ev):
     return str(path)
 
 
+def nearest_city(latlon):
+    """The city, among cities that have events, closest to the browser's location."""
+    try:
+        lat, lon = map(float, str(latlon).split(",")[:2])
+    except ValueError:
+        return gr.update()
+    places = {(e["city"], e["lat"], e["lon"]) for e in events.load_events()
+              if e.get("city") and e.get("lat") is not None}
+    if not places:
+        return gr.update()
+    k = math.cos(math.radians(lat))
+    name = min(places, key=lambda p: (p[1] - lat) ** 2 + ((p[2] - lon) * k) ** 2)[0]
+    gr.Info(f"Showing events near {name}")
+    return name
+
+
 def open_details(event_id, found, request=None):
     """Show the details view for one event."""
     ev = next((e for e in found if e["id"] == event_id), None)
@@ -829,7 +846,8 @@ CSS = """
   --layout-gap: 12px; --block-shadow: none; --shadow-drop: none; --shadow-drop-lg: none;
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
-#ce-pin-id, #ce-saved { display: none !important; }
+#ce-pin-id, #ce-saved, #ce-coords { display: none !important; }
+#ce-near { border-radius: 999px !important; height: 42px; white-space: nowrap; }
 .ce-star { position: relative; z-index: 3; align-self: flex-start; border: 0; background: none; padding: 2px;
            font-size: 19px; line-height: 1; color: var(--ce-border-2); cursor: pointer; }
 .ce-star:hover { color: var(--ce-muted); }
@@ -1098,6 +1116,8 @@ button.ce-details-btn { position: absolute !important; inset: 0; width: 100%; he
   #ce-theme-btn { order: 1; margin-left: auto; }
   #ce-poster-btn { order: 2; width: 42px; min-width: 42px !important; padding: 0 !important; font-size: 0 !important; }
   #ce-poster-btn::before { content: "+"; font-size: 22px; font-weight: 500; }
+  #ce-near { order: 1; width: 42px; min-width: 42px !important; padding: 0 !important; font-size: 0 !important; }   /* icon only */
+  #ce-near::before { content: "◎"; font-size: 20px; }
   #ce-city { order: 3; flex: 1 1 100% !important; max-width: none; }
   #ce-radius { order: 4; flex: 1 1 100% !important; width: 100% !important; overflow: hidden !important; }
   #ce-radius .wrap { display: flex; overflow-x: auto; width: 100%; max-width: 100%; scrollbar-width: none; }
@@ -1147,6 +1167,7 @@ with gr.Blocks(title=TITLE) as demo:
                     gr.HTML(LOGO_HTML, scale=0, min_width=150)
                     city = gr.Textbox(DEFAULT_CITY, show_label=False, placeholder="Search a city", scale=2,
                                       elem_id="ce-city", min_width=160, container=False)
+                    near_btn = gr.Button("◎ Near me", elem_id="ce-near", scale=0, min_width=110)
                     radius = gr.Radio(RADIUS_CHOICES, value=DEFAULT_RADIUS, show_label=False, scale=0,
                                       elem_id="ce-radius", container=False)
                     gr.HTML("", elem_classes="ce-spacer", scale=1, min_width=0)
@@ -1245,6 +1266,7 @@ with gr.Blocks(title=TITLE) as demo:
 
         pin_box = gr.Textbox(elem_id="ce-pin-id", show_label=False, container=False)  # hidden, filled by map clicks
         saved_box = gr.Textbox("[]", elem_id="ce-saved", show_label=False, container=False)  # hidden, filled by the browser
+        coords = gr.Textbox(elem_id="ce-coords", show_label=False, container=False)  # hidden, "lat,lon,time" from the browser
 
         # ----- wiring -----
         list_inputs = [city, radius, chip, sort, fetch_count, saved_box, q]
@@ -1287,6 +1309,13 @@ with gr.Blocks(title=TITLE) as demo:
           else prompt("Copy this link", url);
         }""")
         demo.load(open_from_link, found_state, opens)
+        near_btn.click(None, None, coords, js="""() => new Promise(done => {
+          if (!navigator.geolocation) return done("");
+          navigator.geolocation.getCurrentPosition(
+            p => done(p.coords.latitude + "," + p.coords.longitude + "," + Date.now()),
+            () => done(""), { timeout: 8000 });
+        })""")
+        coords.change(nearest_city, coords, city).then(show_events, list_inputs, list_outputs)
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
         close_btn.click(lambda: gr.update(visible=False), None, poster_panel)
         extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes)
