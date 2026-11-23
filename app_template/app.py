@@ -710,6 +710,18 @@ def extract_poster(image_path, request: gr.Request = None):
         *[data.get(k, "") for k in POSTER_FIELDS]
 
 
+def poster_report(*values):
+    """A checklist of what Gemma found on the poster, built from the filled boxes right after Extract."""
+    rows = []
+    for key, value in zip(POSTER_FIELDS, values):
+        name = key.replace("_", " ").capitalize()
+        if str(value or "").strip():
+            rows.append(f'<li class="ok"><i>✓</i>{name}: {esc(str(value)[:60])}</li>')
+        else:
+            rows.append(f'<li class="miss"><i>–</i>{name} not on the poster</li>')
+    return f'<div class="ce-read"><b>What Gemma read</b><ul>{"".join(rows)}</ul></div>'
+
+
 def save_poster(title, ev_type, when, mode, city, eligibility, requirements, link,
                 map_city, radius, chip, sort, fetch_count=None, saved="[]", query="", request: gr.Request = None):
     """Save the (possibly edited) poster event to events.json and redraw."""
@@ -868,6 +880,13 @@ CSS = """
 .ce-stat span { font-size: 12px; color: var(--ce-muted); }
 .ce-stat.hot b { color: var(--ce-hot); }
 @media (max-width: 860px) { .ce-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* what Gemma read on the poster */
+.ce-read { border: 1px solid var(--ce-border); border-radius: 14px; padding: 10px 14px; background: var(--ce-card); font-size: 13px; }
+.ce-read ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.ce-read li { display: flex; gap: 8px; padding: 2px 0; color: var(--ce-text); }
+.ce-read li i { font-style: normal; width: 14px; flex: none; text-align: center; }
+.ce-read li.ok i { color: #10b981; }
+.ce-read li.miss { color: var(--ce-muted); }
 /* closing-this-week strip */
 #ce-strip-box { padding: 0 !important; background: transparent !important; border: none !important;
                 contain: inline-size; min-width: 0 !important; max-width: 100%; }   /* scroll inside, never widen the page */
@@ -1202,6 +1221,7 @@ with gr.Blocks(title=TITLE) as demo:
                         poster_img = gr.Image(type="filepath", label="Poster", height=300)
                         extract_btn = gr.Button("✦ Extract with Gemma", variant="primary")
                         poster_status = gr.Markdown("Upload a poster, then press Extract.")
+                        poster_read = gr.HTML(elem_id="ce-read")
                     with gr.Column(scale=6, min_width=260):
                         poster_boxes = []
                         for pair in (POSTER_FIELDS[i:i + 2] for i in range(0, len(POSTER_FIELDS), 2)):
@@ -1334,7 +1354,8 @@ with gr.Blocks(title=TITLE) as demo:
         coords.change(nearest_city, coords, city).then(show_events, list_inputs, list_outputs)
         poster_btn.click(lambda: gr.update(visible=True), None, poster_panel)
         close_btn.click(lambda: gr.update(visible=False), None, poster_panel)
-        extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes)
+        extract_btn.click(extract_poster, poster_img, [poster_status] + poster_boxes) \
+                   .then(poster_report, poster_boxes, poster_read)
         add_btn.click(save_poster, poster_boxes + list_inputs, [poster_status] + list_outputs)
 
 
