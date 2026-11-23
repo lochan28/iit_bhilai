@@ -241,6 +241,16 @@ def card_html(ev):
             f'<div class="ce-tags">{tags_html(ev)}</div></div>{star}<span class="ce-chev" aria-hidden="true">›</span>')
 
 
+def stats_html(found):
+    """Four numbers above the list: nearby, online, free, closing this week."""
+    near = sum(1 for e in found if e.get("distance_km") is not None)
+    free = sum(1 for e in found if e.get("is_free") is True)
+    week = sum(1 for e in found if days_left(e) is not None and 0 <= days_left(e) <= 7)
+    tiles = [(near, "nearby", ""), (len(found) - near, "online", ""), (free, "free", ""), (week, "closing this week", "hot")]
+    return '<div class="ce-stats">' + "".join(
+        f'<div class="ce-stat {cls}"><b>{n}</b><span>{label}</span></div>' for n, label, cls in tiles) + "</div>"
+
+
 def deadline_strip(found):
     """Events whose registration closes within 7 days, soonest first."""
     soon = sorted((e for e in found if days_left(e) is not None and 0 <= days_left(e) <= 7), key=days_left)[:10]
@@ -399,10 +409,8 @@ def show_events(city, radius, chip, sort, fetch_count=None, saved="[]", query=""
     lat, lon, found = find_events(city, radius, chip, sort, saved_ids(saved), query)
     if lat is None:
         return (f"<p class='ce-error'>Couldn't find the city “{esc(city)}”. Check the spelling or try a bigger city nearby.</p>",
-                [], "No events", PAGE, "")
-    near = sum(1 for e in found if e.get("distance_km") is not None)
-    header = f"**{near}** nearby · **{len(found) - near}** online"
-    return map_html(lat, lon, int(radius), found), found, header, PAGE, deadline_strip(found)
+                [], stats_html([]), PAGE, "")
+    return map_html(lat, lon, int(radius), found), found, stats_html(found), PAGE, deadline_strip(found)
 
 
 def refresh(city, radius, chip, sort, fetch_count=DEFAULT_FETCH_COUNT, saved="[]", query="", *args):
@@ -853,6 +861,13 @@ CSS = """
 .ce-star:hover { color: var(--ce-muted); }
 .ce-star.on { color: #f5b000; }
 .ce-card.ce-hl { border-color: var(--ce-accent) !important; box-shadow: 0 0 0 3px var(--ce-accent-bg); }
+/* stats tiles */
+.ce-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ce-stat { background: var(--ce-card); border: 1px solid var(--ce-border); border-radius: 14px; padding: 8px 12px; }
+.ce-stat b { display: block; font-size: 20px; font-weight: 650; letter-spacing: -.02em; color: var(--ce-text); }
+.ce-stat span { font-size: 12px; color: var(--ce-muted); }
+.ce-stat.hot b { color: var(--ce-hot); }
+@media (max-width: 860px) { .ce-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* closing-this-week strip */
 #ce-strip-box { padding: 0 !important; background: transparent !important; border: none !important;
                 contain: inline-size; min-width: 0 !important; max-width: 100%; }   /* scroll inside, never widen the page */
@@ -951,8 +966,9 @@ CSS = """
 .ce-error { color: var(--ce-hot); padding: 24px; background: var(--ce-card); border: 1px solid var(--ce-border); border-radius: 16px; margin: 0; }
 
 #ce-list-col { min-width: 0 !important; gap: 10px !important; }
-#ce-list-head { align-items: center; justify-content: space-between; flex-wrap: nowrap !important; gap: 10px; }
+#ce-list-head { align-items: center; justify-content: flex-end; flex-wrap: wrap !important; gap: 10px; }
 #ce-list-head > * { flex: 0 1 auto !important; min-width: 0 !important; width: auto !important; }
+#ce-list-head > #ce-count { flex: 1 1 100% !important; width: 100% !important; padding: 0 !important; }   /* stats get their own line, sort sits under them */
 #ce-count, #ce-count p { color: var(--ce-muted); font-size: 13px; margin: 0; }
 #ce-count strong { color: var(--ce-text); font-weight: 600; }
 
@@ -1201,7 +1217,7 @@ with gr.Blocks(title=TITLE) as demo:
                     q = gr.Textbox(placeholder="Search titles, e.g. AI or IIT", show_label=False,
                                    container=False, elem_id="ce-q", max_length=80)
                     with gr.Row(elem_id="ce-list-head"):
-                        count = gr.Markdown(FIRST_COUNT, elem_id="ce-count")
+                        count = gr.HTML(FIRST_COUNT, elem_id="ce-count")
                         sort = gr.Radio(["Nearest", "Closing soon"], value="Nearest", show_label=False,
                                         elem_id="ce-sort", container=False, scale=0)
 
