@@ -708,5 +708,30 @@
     "description": "This two-day national-level seminar explores the use of deep learning and multi-omics to identify cancer biomarkers through non-invasive liquid biopsy platforms. It focuses on advanced computational approaches for improving cancer detection methods.",
     "eligibility": "Not specified",
     "requirements": "Not specified"
+  },
+  "unstop-840636ff": {
+    "description": "Hack-a-Sol 5.0 is a 36-hour national-level hackathon at IIIT Naya Raipur where you can build impactful solutions for real-world challenges using technologies like AI, ML, and Web Development. It offers a unique opportunity to collaborate with talented peers and receive guidance from industry experts.",
+    "eligibility": "Students, developers, and designers from colleges and universities across India.",
+    "requirements": "Teams of 2 to 4 members."
+  },
+  "unstop-1c4d6cb6": {
+    "description": "Battle of Bands is an exciting musical competition where student groups can showcase their talent across various genres like rock, pop, and fusion. It provides a platform to demonstrate your musical skills, creativity, and stage presence in front of a live audience and judges.",
+    "eligibility": "Student bands.",
+    "requirements": "Registration by deadline, adherence to time limits, providing own instruments, and appropriate performance content."
+  },
+  "unstop-d570390d": {
+    "description": "Test your robotics and problem-solving skills in the Robo Hurdle Race, an exciting obstacle course challenge. Participants will navigate their robots through a specially designed track to demonstrate precision, coordination, and control.",
+    "eligibility": "To be communicated by the organizing team.",
+    "requirements": "Robots must meet official technical specifications and participants must follow all safety and competition rules."
+  },
+  "unstop-b1dfb120": {
+    "description": "Arthayudh is an online portfolio management competition where teams design customized investment plans based on specific client scenarios. Participants will progress through screening and construction rounds, eventually defending their strategies in a final presentation before a panel of judges.",
+    "eligibility": "Undergraduate, Diploma, Engineering students, and MBA aspirants.",
+    "requirements": "Teams must consist of exactly 3 members."
+  },
+  "unstop-200e5418": {
+    "description": "Participate in a fast-paced competition to build and deploy a functional MVP based on a problem statement revealed at the start of the event. Teams will leverage AI tools for prompting, development, and testing to transform an idea into a working product within a limited timeframe.",
+    "eligibility": "Open to students from any college; teams must consist of 2–3 participants.",
+    "requirements": "Register via the Tech Habba website and bring a laptop, charger, GitHub access, AI tool accounts, and any necessary API credentials."
   }
 }
